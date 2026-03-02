@@ -123,6 +123,7 @@ io.on('connection', (socket) => {
         room.seed = seed;
         room.gameInProgress = true;
         io.to(code).emit('battleStart', { seed });
+        io.to(code).emit('startGame');   // ← tells lobby to go to battle page
         console.log(`Host started battle in ${code} (seed: ${seed})`);
     });
 
@@ -203,3 +204,4 @@ function getPlayerList(room) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`PokeRumble running on port ${PORT}`));
+
