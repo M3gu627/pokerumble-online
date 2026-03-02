@@ -14,7 +14,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%;
-            background: rgba(41, 128, 185, 0.97);
+            background: rgba(41,128,185,0.97);
             color: white;
             text-align: center;
             padding: 10px 20px;
@@ -27,7 +27,7 @@
         body.is-spectator { padding-top: 36px; }
         body.is-spectator #game-container { height: calc(92vh - 36px); }
 
-        /* Spectator count chip on arena */
+        /* Spectator count chip */
         #spectator-chip {
             display: none;
             position: fixed;
@@ -40,37 +40,83 @@
             border-radius: 20px;
             border: 1px solid #3498db;
             z-index: 150;
-            letter-spacing: 1px;
         }
 
-        /* Activity toasts in-game */
+        /* In-game activity toasts */
         #ingame-activity {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
+            bottom: 20px; left: 50%;
             transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            z-index: 150;
-            pointer-events: none;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 6px; z-index: 150; pointer-events: none;
         }
         .ig-toast {
             font-family: 'Press Start 2P', monospace;
             font-size: 0.38rem;
             padding: 6px 14px;
             border-radius: 20px;
-            letter-spacing: 0.5px;
             animation: toastIn 0.3s ease;
             white-space: nowrap;
         }
-        .ig-toast.joined     { background: rgba(46,204,113,0.9); color: #fff; }
-        .ig-toast.left       { background: rgba(231,76,60,0.9);  color: #fff; }
-        .ig-toast.spectating { background: rgba(52,152,219,0.9); color: #fff; }
-        @keyframes toastIn {
-            from { opacity:0; transform:translateY(8px); }
-            to   { opacity:1; transform:translateY(0); }
+        .ig-toast.joined     { background: rgba(46,204,113,0.9); color:#fff; }
+        .ig-toast.left       { background: rgba(231,76,60,0.9);  color:#fff; }
+        .ig-toast.spectating { background: rgba(52,152,219,0.9); color:#fff; }
+        @keyframes toastIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── READY COUNTER ── */
+        #ready-counter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin: 14px 0 6px;
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        #ready-fraction {
+            font-size: 1.4rem;
+            color: #ffcb05;
+            letter-spacing: 2px;
+            text-shadow: 0 0 12px rgba(255,203,5,0.5);
+            transition: all 0.3s ease;
+        }
+        #ready-fraction.all-ready {
+            color: #2ecc71;
+            text-shadow: 0 0 16px rgba(46,204,113,0.7);
+            animation: popReady 0.4s ease;
+        }
+        @keyframes popReady {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        #ready-label {
+            font-size: 0.45rem;
+            color: #aaa;
+            letter-spacing: 1px;
+        }
+        #ready-label.all-ready { color: #2ecc71; }
+
+        /* pip row */
+        #ready-pips {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .pip {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #555;
+            transition: all 0.25s ease;
+        }
+        .pip.ready {
+            background: #2ecc71;
+            border-color: #27ae60;
+            box-shadow: 0 0 6px rgba(46,204,113,0.8);
         }
 
         /* ── POST GAME OVERLAY ── */
@@ -99,19 +145,12 @@
             max-width: 860px;
         }
         .pg-title {
-            font-size: 0.5rem;
-            color: #ffcb05;
-            letter-spacing: 2px;
-            margin-bottom: 14px;
-            border-bottom: 1px solid #34495e;
-            padding-bottom: 10px;
+            font-size: 0.5rem; color: #ffcb05; letter-spacing: 2px;
+            margin-bottom: 14px; border-bottom: 1px solid #34495e; padding-bottom: 10px;
         }
         #winner-banner {
-            text-align: center;
-            font-size: 1rem;
-            color: #ffcb05;
-            letter-spacing: 3px;
-            animation: glow 1.5s infinite alternate;
+            text-align: center; font-size: 1rem; color: #ffcb05;
+            letter-spacing: 3px; animation: glow 1.5s infinite alternate;
         }
         @keyframes glow {
             from { text-shadow: 0 0 10px rgba(255,203,5,0.4); }
@@ -119,7 +158,6 @@
         }
         .pg-columns { display: flex; gap: 16px; }
         .pg-col { flex: 1; }
-
         #vote-list, #wins-list {
             display: flex; flex-direction: column;
             gap: 7px; max-height: 220px; overflow-y: auto;
@@ -133,10 +171,9 @@
         .vote-name, .wins-name { flex: 1; color: #ecf0f1; }
         .wins-rank { color: #ffcb05; width: 18px; text-align: center; }
         .wins-count { color: #2ecc71; }
-        .badge { padding: 3px 7px; border-radius: 4px; font-size: 0.38rem; letter-spacing: 0.5px; }
+        .badge { padding: 3px 7px; border-radius: 4px; font-size: 0.38rem; }
         .badge-play { background: #27ae60; color: #fff; }
         .badge-quit { background: #c0392b; color: #fff; }
-
         #vote-buttons { display: flex; gap: 16px; justify-content: center; }
         .pg-btn {
             font-family: 'Press Start 2P', monospace;
@@ -150,40 +187,27 @@
         .pg-btn-play:hover:not(:disabled) { background: #2ecc71; }
         .pg-btn-quit { background: #c0392b; color: white; }
         .pg-btn-quit:hover:not(:disabled) { background: #e74c3c; }
-
         #vote-tally { text-align: center; font-size: 0.45rem; color: #aaa; margin-bottom: 12px; }
         #vote-tally b { color: #ffcb05; }
         #restart-countdown { text-align: center; font-size: 0.45rem; color: #777; margin-top: 12px; }
         #restart-countdown span { color: #ffcb05; }
-
-        .spectator-vote-note {
-            text-align: center;
-            font-size: 0.38rem;
-            color: #3498db;
-            margin-top: 8px;
-        }
+        .spectator-vote-note { text-align: center; font-size: 0.38rem; color: #3498db; margin-top: 8px; }
     </style>
 </head>
 <body>
 
-    <!-- Spectator banner (shown if watching) -->
     <div id="spectator-banner">
         👁 YOU ARE SPECTATING &nbsp;|&nbsp; <span id="spectator-count-badge">0</span> SPECTATOR(S) WATCHING
     </div>
-
-    <!-- Spectator count chip (shown to all players) -->
     <div id="spectator-chip">👁 <span id="spectator-chip-count">0</span> WATCHING</div>
-
-    <!-- In-game activity toasts -->
     <div id="ingame-activity"></div>
 
-    <!-- ── POST GAME OVERLAY ── -->
+    <!-- POST GAME -->
     <div id="postgame-overlay">
         <div class="postgame-card" style="text-align:center;padding:18px 32px;">
             <div class="pg-title">🏆 BATTLE RESULT</div>
             <div id="winner-banner">---</div>
         </div>
-
         <div class="postgame-card">
             <div class="pg-columns">
                 <div class="pg-col">
@@ -196,14 +220,11 @@
                 </div>
             </div>
         </div>
-
         <div class="postgame-card" style="padding:18px 32px;">
-            <div id="vote-tally">
-                <b id="play-vote-count">0</b> / <b id="total-player-count">?</b> voted Play Again
-            </div>
+            <div id="vote-tally"><b id="play-vote-count">0</b> / <b id="total-player-count">?</b> voted Play Again</div>
             <div id="vote-buttons">
                 <button class="pg-btn pg-btn-play" id="btn-play-again" onclick="votePlayAgain()">▶ PLAY AGAIN</button>
-                <button class="pg-btn pg-btn-quit" id="btn-quit"       onclick="voteQuit()">✖ QUIT</button>
+                <button class="pg-btn pg-btn-quit" id="btn-quit" onclick="voteQuit()">✖ QUIT</button>
             </div>
             <div id="spectator-vote-note" class="spectator-vote-note" style="display:none;">
                 👁 You are spectating — your vote won't count toward restart
@@ -212,17 +233,28 @@
         </div>
     </div>
 
-    <!-- ── SELECTION OVERLAY ── -->
+    <!-- SELECTION OVERLAY -->
     <div id="selection-overlay">
         <div id="selection-panel">
             <h2>CHOOSE YOUR POKEMON</h2>
             <div id="timer-display">60</div>
+
+            <!-- ── READY COUNTER ── -->
+            <div id="ready-counter">
+                <div>
+                    <div id="ready-fraction">0/1</div>
+                    <div id="ready-label">READY</div>
+                </div>
+            </div>
+            <div id="ready-pips"></div>
+            <!-- ──────────────── -->
+
             <div id="pokemon-grid"></div>
             <button id="start-battle-btn" class="hidden" onclick="startBattle()">START BATTLE</button>
         </div>
     </div>
 
-    <!-- ── GAME LAYOUT ── -->
+    <!-- GAME -->
     <div id="game-container">
         <div id="hp-sidebar">
             <div id="player-profile" class="hidden">
@@ -241,12 +273,10 @@
             <div class="sidebar-header">TEAM STATUS</div>
             <div id="hp-list"></div>
         </div>
-
         <div id="arena-wrapper">
             <div id="status-banner">WAITING FOR SELECTION...</div>
             <canvas id="arena" width="800" height="600"></canvas>
         </div>
-
         <div id="log-sidebar">
             <div id="log-header">BATTLE FEED</div>
             <div id="log-content"></div>
