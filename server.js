@@ -75,11 +75,18 @@ io.on('connection', (socket) => {
         socket.roomCode = code;
         socket.playerName = name;
 
-        if (room.gameInProgress) {
-            socket.isSpectator = true;
-            room.players.push({ id: socket.id, name: name || 'Player', isSpectator: true });
+                if (room.gameInProgress) {
+            // Re-join as active player (not spectator) if name already existed
+            const existing = room.players.find(p => p.name === name && !p.isSpectator);
+            if (existing) {
+                existing.id = socket.id; // update socket id
+                socket.isSpectator = false;
+            } else {
+                socket.isSpectator = true;
+                room.players.push({ id: socket.id, name: name || 'Player', isSpectator: true });
+            }
             socket.emit('roomJoined', code);
-            socket.emit('joinedAsSpectator');
+            socket.emit('joinedAsSpectator'); // only if truly spectator
             socket.emit('spectatorGameState', {
                 wins: room.wins,
                 totalPlayers: room.players.filter(p => !p.isSpectator).length,
@@ -87,8 +94,9 @@ io.on('connection', (socket) => {
             });
             io.to(code).emit('updatePlayers', getPlayerList(room));
             io.to(code).emit('spectatorCount', room.players.filter(p => p.isSpectator).length);
-            io.to(code).emit('playerActivity', { name, action: 'spectating' });
+            io.to(code).emit('playerActivity', { name, action: existing ? 'rejoined' : 'spectating' });
         } else {
+            // normal join (unchanged)
             if (room.players.length >= 10) { socket.emit('errorMessage', 'Room is full (10/10).'); return; }
             socket.isSpectator = false;
             room.players.push({ id: socket.id, name: name || 'Player', isSpectator: false });
@@ -204,4 +212,5 @@ function getPlayerList(room) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`PokeRumble running on port ${PORT}`));
+
 
