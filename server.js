@@ -39,7 +39,8 @@ io.on('connection', (socket) => {
             players: [{ id: socket.id, name: name || 'Player', isSpectator: false }],
             votes: {},
             wins: {},
-            gameInProgress: false
+            gameInProgress: false,
+            readyPlayers: new Set()
         };
 
         socket.join(code);
@@ -61,7 +62,6 @@ io.on('connection', (socket) => {
         socket.playerName = name;
 
         if (room.gameInProgress) {
-            // Mid-game join → spectator
             socket.isSpectator = true;
             room.players.push({ id: socket.id, name: name || 'Player', isSpectator: true });
             socket.emit('roomJoined', code);
@@ -92,6 +92,7 @@ io.on('connection', (socket) => {
         if (room.host !== socket.id) { socket.emit('errorMessage', 'Only the host can start.'); return; }
 
         room.gameInProgress = true;
+        room.readyPlayers = new Set(); // reset ready set for new game
         const active = room.players.filter(p => !p.isSpectator);
 
         active.forEach(p => {
@@ -104,7 +105,21 @@ io.on('connection', (socket) => {
         });
 
         io.to(code).emit('startGame');
-        console.log(`Room ${code} game started with ${active.length} players`);
+        console.log(`Room ${code} started with ${active.length} players`);
+    });
+
+    // Player locked in their pokemon choice
+    socket.on('playerReady', () => {
+        const code = socket.roomCode;
+        if (!code || !rooms[code] || socket.isSpectator) return;
+        const room = rooms[code];
+
+        room.readyPlayers.add(socket.id);
+        const activeCount = room.players.filter(p => !p.isSpectator).length;
+        const readyCount = room.readyPlayers.size;
+
+        io.to(code).emit('readyUpdate', { ready: readyCount, total: activeCount });
+        console.log(`Ready: ${readyCount}/${activeCount} in room ${code}`);
     });
 
     socket.on('reportWin', ({ winner }) => {
@@ -113,6 +128,7 @@ io.on('connection', (socket) => {
         const room = rooms[code];
         if (winner) room.wins[winner] = (room.wins[winner] || 0) + 1;
         room.votes = {};
+        room.readyPlayers = new Set();
         io.to(code).emit('winsUpdate', room.wins);
         console.log(`Win: ${winner} in room ${code}`);
     });
@@ -133,9 +149,9 @@ io.on('connection', (socket) => {
         if (vals.length >= activeCount) {
             if (playVotes >= quitVotes) {
                 room.votes = {};
+                room.readyPlayers = new Set();
                 room.gameInProgress = false;
                 setTimeout(() => {
-                    // Spectators become full players next round
                     room.players.forEach(p => { p.isSpectator = false; });
                     room.players.forEach(p => {
                         io.to(p.id).emit('gameInfo', {
@@ -160,6 +176,8 @@ io.on('connection', (socket) => {
         if (code && rooms[code]) {
             const room = rooms[code];
             room.players = room.players.filter(p => p.id !== socket.id);
+            room.readyPlayers.delete(socket.id);
+
             if (room.players.length === 0) {
                 delete rooms[code];
                 console.log(`Room ${code} deleted`);
@@ -169,8 +187,10 @@ io.on('connection', (socket) => {
                     room.host = newHost.id;
                     io.to(room.host).emit('youAreHost');
                 }
+                const activeCount = room.players.filter(p => !p.isSpectator).length;
                 io.to(code).emit('updatePlayers', getPlayerList(room));
                 io.to(code).emit('spectatorCount', room.players.filter(p => p.isSpectator).length);
+                io.to(code).emit('readyUpdate', { ready: room.readyPlayers.size, total: activeCount });
                 if (name) io.to(code).emit('playerActivity', { name, action: 'left' });
             }
         }
