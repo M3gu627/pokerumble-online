@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PokeRumble Online</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            background:#111;
+            color:white;
+            text-align:center;
+            font-family:Arial;
+        }
+        button {
+            padding:15px;
+            margin:10px;
+            font-size:18px;
+            cursor:pointer;
+        }
+        input {
+            padding:10px;
+            font-size:16px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>PokeRumble Online</h1>
+
+<button onclick="createRoom()">Create Room</button>
+
+<br><br>
+
+<input id="roomInput" placeholder="Enter Room Code">
+<button onclick="joinRoom()">Join Room</button>
+
+<p id="status"></p>
+<p id="playerCount"></p>
+
+<script>
+const socket = io();
+
+function createRoom() {
+    socket.emit("createRoom");
+}
+
+function joinRoom() {
+    const code = document.getElementById("roomInput").value.toUpperCase();
+    socket.emit("joinRoom", code);
+}
+
+socket.on("roomCreated", (code) => {
+    document.getElementById("status").innerText =
+        "Room Created! Code: " + code;
+});
+
+socket.on("updatePlayers", (count) => {
+    document.getElementById("playerCount").innerText =
+        "Players in room: " + count + "/10";
+});
+
+socket.on("startGame", () => {
+    window.location.href = "/pokerumble.html";
+});
+
+socket.on("errorMessage", (msg) => {
+    document.getElementById("status").innerText = msg;
+});
+</script>
+
+</body>
+</html>

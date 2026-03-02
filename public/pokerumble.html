@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PokeRumble - Battle Arena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── SHARED NAVBAR ── */
+        #navbar {
+            position: fixed;
+            top: 12px; left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 1500px;
+            background: rgba(20, 28, 48, 0.97);
+            border: 3px solid #ffcb05;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            gap: 20px;
+            z-index: 200;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+        }
+        #logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-right: auto;
+            text-decoration: none;
+        }
+        #logo-ball {
+            width: 24px; height: 24px;
+            background: linear-gradient(180deg, #e74c3c 50%, white 50%);
+            border: 3px solid #333;
+            border-radius: 50%;
+            position: relative;
+            flex-shrink: 0;
+        }
+        #logo-ball::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px; height: 6px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 50%;
+        }
+        #logo-text {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            color: #ffcb05;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .nav-btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            padding: 8px 14px;
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+        }
+        .nav-btn:hover {
+            border-color: #ffcb05;
+            color: #ffcb05;
+            background: rgba(255,203,5,0.08);
+        }
+        .nav-btn.accent {
+            background: #ffcb05;
+            color: #111;
+            border-color: #ffcb05;
+        }
+        .nav-btn.accent:hover {
+            background: #ffd633;
+            transform: scale(1.04);
+        }
+
+        /* Push game container down to clear navbar */
+        body { padding-top: 64px; }
+        #game-container { height: calc(85vh - 20px); }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav id="navbar">
+        <a href="index.html" id="logo-wrap">
+            <div id="logo-ball"></div>
+            <span id="logo-text">PokeRumble</span>
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-btn">HOME</a>
+            <a href="#" class="nav-btn">ABOUT</a>
+            <a href="#" class="nav-btn">SHOP</a>
+            <a href="pokerumble.html" class="nav-btn accent">▶ PLAY NOW</a>
+            <a href="#" class="nav-btn">PROFILE</a>
+        </div>
+    </nav>
+
+    <div id="selection-overlay">
+        <div id="selection-panel">
+            <h2>CHOOSE YOUR POKEMON</h2>
+            <div id="timer-display">60</div>
+            <div id="pokemon-grid"></div>
+            <button id="start-battle-btn" class="hidden" onclick="startBattle()">START BATTLE</button>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="hp-sidebar">
+            <div id="player-profile" class="hidden">
+                <div class="sidebar-header">CURRENT MATCHUP</div>
+                <div class="profile-display">
+                    <div class="matchup-slot">
+                        <div id="fainted-overlay" class="hidden">FAINTED</div>
+                        <img id="chosen-pkmn-sprite" src="" alt="You">
+                    </div>
+                    <div class="vs-symbol">VS</div>
+                    <div class="matchup-slot">
+                        <img id="target-pkmn-sprite" src="" alt="Target">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-header">TEAM STATUS</div>
+            <div id="hp-list"></div>
+        </div>
+
+        <div id="arena-wrapper">
+            <div id="status-banner">WAITING FOR SELECTION...</div>
+            <canvas id="arena" width="800" height="600"></canvas>
+        </div>
+
+        <div id="log-sidebar">
+            <div id="log-header">BATTLE FEED</div>
+            <div id="log-content"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</body>
+</html>

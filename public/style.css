@@ -1,0 +1,245 @@
+:root { 
+    --bg-color: #0f0f12; 
+    --panel-color: #1e272e; 
+    --accent-color: #ffcb05; 
+}
+
+body { 
+    background: var(--bg-color); 
+    color: white; 
+    font-family: 'Segoe UI', sans-serif; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    height: 100vh; 
+    margin: 0; 
+    overflow: hidden; 
+}
+
+#game-container { 
+    display: flex; 
+    gap: 15px; 
+    width: 95%; 
+    max-width: 1500px; 
+    height: 85vh; 
+}
+
+#hp-sidebar, #log-sidebar { 
+    flex: 1; 
+    background: var(--panel-color); 
+    border-radius: 12px; 
+    border: 1px solid #34495e; 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden;
+}
+
+#hp-sidebar { padding: 15px; overflow-y: auto; }
+
+.hp-card { 
+    background: rgba(0,0,0,0.4); 
+    padding: 10px; 
+    border-radius: 6px; 
+    margin-bottom: 8px;
+    border-left: 4px solid var(--accent-color); 
+}
+
+.hp-card-name { font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; }
+.hp-bar-bg { width: 100%; height: 6px; background: #333; border-radius: 3px; }
+.hp-bar-fill { height: 100%; transition: width 0.4s ease-out; }
+
+#arena-wrapper { 
+    flex: 3; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+}
+
+canvas { 
+    background: #23272a; 
+    border: 3px solid #444; 
+    border-radius: 8px; 
+    width: 100%; 
+    height: 100%; 
+}
+
+#log-header { padding: 15px; text-align: center; border-bottom: 1px solid #34495e; color: var(--accent-color); font-weight: bold; }
+#log-content { 
+    flex: 1; 
+    padding: 10px; 
+    font-size: 0.85rem; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column;
+    text-align: center;
+}
+
+/* Scrollbar Styling */
+#log-content::-webkit-scrollbar { width: 6px; }
+#log-content::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+
+.log-entry { margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+#status-banner { font-size: 1.8rem; color: var(--accent-color); margin-bottom: 10px; font-weight: bold; }
+button { background: #34495e; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+
+/* Add this to your existing CSS */
+#status-banner {
+    transition: all 0.3s ease;
+}
+
+/* Pulse effect for the selection phase */
+.selecting {
+    color: #ffcb05;
+    text-shadow: 0 0 10px #ffcb05;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+canvas {
+    cursor: crosshair; /* Makes it feel like you are aiming/selecting */
+}
+
+/* ... Keep existing root and layout styles ... */
+
+#selection-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#selection-panel {
+    background: var(--panel-color);
+    padding: 30px;
+    border-radius: 20px;
+    border: 2px solid var(--accent-color);
+    text-align: center;
+    max-width: 900px;
+    width: 90%;
+}
+
+#pokemon-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.select-card {
+    background: #2c3e50;
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+}
+
+.select-card:hover { transform: scale(1.05); background: #34495e; }
+.select-card.selected { border-color: var(--accent-color); background: #4b4b00; }
+
+.select-card img { width: 80px; height: 80px; }
+.select-card div { font-size: 0.8rem; font-weight: bold; margin-top: 5px; }
+
+#timer-display { font-size: 2rem; color: var(--accent-color); font-weight: bold; margin-bottom: 10px; }
+
+#start-battle-btn {
+    background: #2ecc71;
+    color: white;
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+}
+
+.hidden { display: none; }
+
+/* ... Keep all your existing CSS and add these at the bottom ... */
+
+#player-profile {
+    margin-bottom: 20px;
+    transition: all 0.5s ease;
+}
+
+.profile-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: rgba(0,0,0,0.3);
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    border: 1px solid var(--accent-color);
+}
+
+#trainer-sprite, #chosen-pkmn-sprite {
+    width: 60px;
+    height: 60px;
+    object-image: contain;
+}
+
+.vs-symbol {
+    font-weight: bold;
+    color: var(--accent-color);
+    font-size: 1.2rem;
+    font-style: italic;
+}
+
+.matchup-slot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+}
+
+.matchup-slot img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+#fainted-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75);
+    color: #e74c3c;
+    font-size: 0.55rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid #e74c3c;
+    letter-spacing: 1px;
+    z-index: 2;
+}
+
+#fainted-overlay.hidden {
+    display: none;
+}
+
+/* Style for the Pokeball icon in the HP List */
+.owner-icon {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin-left: 5px;
+}
