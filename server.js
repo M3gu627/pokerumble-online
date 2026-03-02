@@ -7,10 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Serve all static files from the 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Serve Index.html at root
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'Index.html'));
 });
@@ -22,23 +19,36 @@ function generateCode() {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
 
+function getPlayerList(room) {
+    return room.players.map(p => ({
+        id: p.id,
+        name: p.name,
+        isHost: p.id === room.host
+    }));
+}
+
 io.on('connection', (socket) => {
     console.log('Player connected:', socket.id);
 
-    socket.on('createRoom', () => {
+    socket.on('createRoom', (name) => {
         let code = generateCode();
         while (rooms[code]) code = generateCode();
 
-        rooms[code] = { players: [socket.id], host: socket.id };
+        rooms[code] = {
+            host: socket.id,
+            players: [{ id: socket.id, name: name || 'Player' }]
+        };
+
         socket.join(code);
         socket.roomCode = code;
+        socket.playerName = name;
 
         socket.emit('roomCreated', code);
-        io.to(code).emit('updatePlayers', rooms[code].players.length);
-        console.log(`Room ${code} created by ${socket.id}`);
+        io.to(code).emit('updatePlayers', getPlayerList(rooms[code]));
+        console.log(`Room ${code} created by ${name} (${socket.id})`);
     });
 
-    socket.on('joinRoom', (code) => {
+    socket.on('joinRoom', ({ code, name }) => {
         const room = rooms[code];
         if (!room) {
             socket.emit('errorMessage', 'Room not found.');
@@ -49,26 +59,43 @@ io.on('connection', (socket) => {
             return;
         }
 
-        room.players.push(socket.id);
+        room.players.push({ id: socket.id, name: name || 'Player' });
         socket.join(code);
         socket.roomCode = code;
+        socket.playerName = name;
 
-        io.to(code).emit('updatePlayers', room.players.length);
+        socket.emit('roomJoined', code);
+        io.to(code).emit('updatePlayers', getPlayerList(room));
+        console.log(`${name} joined room ${code}`);
+    });
 
-        if (room.players.length >= 2) {
-            io.to(code).emit('startGame');
+    socket.on('hostStart', (code) => {
+        const room = rooms[code];
+        if (!room) return;
+        if (room.host !== socket.id) {
+            socket.emit('errorMessage', 'Only the host can start the game.');
+            return;
         }
+        console.log(`Host started room ${code} with ${room.players.length} players`);
+        io.to(code).emit('startGame');
     });
 
     socket.on('disconnect', () => {
         const code = socket.roomCode;
         if (code && rooms[code]) {
-            rooms[code].players = rooms[code].players.filter(id => id !== socket.id);
-            if (rooms[code].players.length === 0) {
+            const room = rooms[code];
+            room.players = room.players.filter(p => p.id !== socket.id);
+
+            if (room.players.length === 0) {
                 delete rooms[code];
                 console.log(`Room ${code} deleted (empty)`);
             } else {
-                io.to(code).emit('updatePlayers', rooms[code].players.length);
+                if (room.host === socket.id) {
+                    room.host = room.players[0].id;
+                    io.to(room.host).emit('youAreHost');
+                    console.log(`New host for room ${code}: ${room.players[0].name}`);
+                }
+                io.to(code).emit('updatePlayers', getPlayerList(room));
             }
         }
         console.log('Player disconnected:', socket.id);
