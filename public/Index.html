@@ -379,8 +379,8 @@
 
     // ←←← THIS IS WHAT MAKES THE START BUTTON WORK ←←←
     socket.on('startGame', () => {
-        window.location.href = '/pokerumble.html';
-    });
+    window.location.href = `/pokerumble.html?room=${currentRoom}`;
+});
 
     socket.on('errorMessage', (msg) => {
         showStatus(msg, false);
@@ -388,3 +388,4 @@
 </script>
 </body>
 </html>
+
