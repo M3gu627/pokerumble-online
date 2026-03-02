@@ -183,7 +183,7 @@ socket.on('gameInfo', (data) => {
     if (data.name) myName = data.name;
     if (data.totalPlayers) {
         totalPlayers = data.totalPlayers;
-        updateReadyCounter(0, totalPlayers);
+        updateReadyCounter(currentReady, totalPlayers);
     }
     if (data.wins) lobbyWins = data.wins;
     if (data.isSpectator) setSpectatorMode(true);
@@ -191,6 +191,16 @@ socket.on('gameInfo', (data) => {
 
 socket.on('readyUpdate', ({ ready, total }) => {
     updateReadyCounter(ready, total);
+});
+
+// ←←← NEW: Player list & count fix (this was missing) ←←←
+socket.on('updatePlayers', (playerList) => {
+    const active = playerList.filter(p => !p.isSpectator).length;
+    totalPlayers = active;
+    updateReadyCounter(currentReady, totalPlayers);
+
+    // Optional: you can add a player list UI here later if you want names displayed
+    console.log("Players in room:", playerList); // shows host + names for debugging
 });
 
 socket.on('joinedAsSpectator', () => {
