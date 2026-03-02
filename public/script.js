@@ -26,12 +26,16 @@ const btnPlayAgain     = document.getElementById('btn-play-again');
 const btnQuit          = document.getElementById('btn-quit');
 
 // Spectator elements
-const spectatorBanner    = document.getElementById('spectator-banner');
-const spectatorChip      = document.getElementById('spectator-chip');
-const spectatorChipCount = document.getElementById('spectator-chip-count');
-const spectatorBadgeCount= document.getElementById('spectator-count-badge');
-const spectatorVoteNote  = document.getElementById('spectator-vote-note');
-const ingameActivity     = document.getElementById('ingame-activity');
+const spectatorBanner     = document.getElementById('spectator-banner');
+const spectatorChip       = document.getElementById('spectator-chip');
+const spectatorChipCount  = document.getElementById('spectator-chip-count');
+const spectatorVoteNote   = document.getElementById('spectator-vote-note');
+const ingameActivity      = document.getElementById('ingame-activity');
+
+// Ready counter elements
+const readyFraction = document.getElementById('ready-fraction');
+const readyLabel    = document.getElementById('ready-label');
+const readyPips     = document.getElementById('ready-pips');
 
 let gameState = "LOADING";
 let selectionTimeLeft = 60;
@@ -50,6 +54,10 @@ let playerVotes = {};
 let totalPlayers = 1;
 let myName = sessionStorage.getItem('playerName') || 'Player';
 let amSpectator = false;
+
+// Ready state
+let currentReady = 0;
+let currentTotal = 1;
 
 const POKEBALL_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png";
 
@@ -83,28 +91,49 @@ const TYPE_CHART = {
 };
 
 const TYPE_MOVES = {
-    "Fire":    {debuff:"Smokescreen", short:"Ember",        long:"Flamethrower"},
-    "Water":   {debuff:"Tail Whip",   short:"Water Gun",    long:"Hydro Pump"},
-    "Grass":   {debuff:"Stun Spore",  short:"Vine Whip",    long:"Solar Beam"},
-    "Electric":{debuff:"Thunder Wave",short:"Quick Attack", long:"Thunderbolt"},
-    "Rock":    {debuff:"Defense Curl",short:"Rock Throw",   long:"Rock Slide"},
-    "Ghost":   {debuff:"Confuse Ray", short:"Lick",         long:"Shadow Ball"},
-    "Fighting":{debuff:"Focus Energy",short:"Karate Chop",  long:"Low Kick"},
-    "Flying":  {debuff:"Sand Attack", short:"Wing Attack",  long:"Hurricane"},
-    "Psychic": {debuff:"Teleport",    short:"Psybeam",      long:"Psychic"},
-    "Ground":  {debuff:"Sand Attack", short:"Slash",        long:"Earthquake"},
-    "Bug":     {debuff:"String Shot", short:"Tackle",       long:"Bug Buzz"},
-    "Fairy":   {debuff:"Charm",       short:"Pound",        long:"Moonblast"},
-    "Dragon":  {debuff:"Leer",        short:"Dragon Breath",long:"Dragon Pulse"},
-    "Dark":    {debuff:"Howl",        short:"Bite",         long:"Crunch"},
-    "Steel":   {debuff:"Metal Sound", short:"Metal Claw",   long:"Flash Cannon"},
-    "Ice":     {debuff:"Haze",        short:"Powder Snow",  long:"Blizzard"},
-    "Poison":  {debuff:"Glare",       short:"Poison Sting", long:"Sludge Bomb"},
-    "Normal":  {debuff:"Screech",     short:"Tackle",       long:"Hyper Beam"}
+    "Fire":    {debuff:"Smokescreen", short:"Ember",         long:"Flamethrower"},
+    "Water":   {debuff:"Tail Whip",   short:"Water Gun",     long:"Hydro Pump"},
+    "Grass":   {debuff:"Stun Spore",  short:"Vine Whip",     long:"Solar Beam"},
+    "Electric":{debuff:"Thunder Wave",short:"Quick Attack",  long:"Thunderbolt"},
+    "Rock":    {debuff:"Defense Curl",short:"Rock Throw",    long:"Rock Slide"},
+    "Ghost":   {debuff:"Confuse Ray", short:"Lick",          long:"Shadow Ball"},
+    "Fighting":{debuff:"Focus Energy",short:"Karate Chop",   long:"Low Kick"},
+    "Flying":  {debuff:"Sand Attack", short:"Wing Attack",   long:"Hurricane"},
+    "Psychic": {debuff:"Teleport",    short:"Psybeam",       long:"Psychic"},
+    "Ground":  {debuff:"Sand Attack", short:"Slash",         long:"Earthquake"},
+    "Bug":     {debuff:"String Shot", short:"Tackle",        long:"Bug Buzz"},
+    "Fairy":   {debuff:"Charm",       short:"Pound",         long:"Moonblast"},
+    "Dragon":  {debuff:"Leer",        short:"Dragon Breath", long:"Dragon Pulse"},
+    "Dark":    {debuff:"Howl",        short:"Bite",          long:"Crunch"},
+    "Steel":   {debuff:"Metal Sound", short:"Metal Claw",    long:"Flash Cannon"},
+    "Ice":     {debuff:"Haze",        short:"Powder Snow",   long:"Blizzard"},
+    "Poison":  {debuff:"Glare",       short:"Poison Sting",  long:"Sludge Bomb"},
+    "Normal":  {debuff:"Screech",     short:"Tackle",        long:"Hyper Beam"}
 };
 
 function formatName(n) { return n.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function normalizeType(t) { return t.charAt(0).toUpperCase()+t.slice(1).toLowerCase(); }
+
+// ── Ready counter ──
+function updateReadyCounter(ready, total) {
+    currentReady = ready;
+    currentTotal = total;
+
+    readyFraction.textContent = `${ready}/${total}`;
+    readyLabel.textContent = ready === total ? '✔ ALL READY!' : 'READY';
+
+    const allReady = ready === total && total > 0;
+    readyFraction.classList.toggle('all-ready', allReady);
+    readyLabel.classList.toggle('all-ready', allReady);
+
+    // Rebuild pip row
+    readyPips.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+        const pip = document.createElement('div');
+        pip.className = 'pip' + (i < ready ? ' ready' : '');
+        readyPips.appendChild(pip);
+    }
+}
 
 // ── Spectator helpers ──
 function setSpectatorMode(isSpec) {
@@ -113,7 +142,6 @@ function setSpectatorMode(isSpec) {
         spectatorBanner.style.display = 'block';
         spectatorVoteNote.style.display = 'block';
         document.body.classList.add('is-spectator');
-        // Spectators skip selection overlay
         selectionOverlay.style.display = 'none';
         statusBanner.innerText = 'SPECTATING...';
     } else {
@@ -124,40 +152,40 @@ function setSpectatorMode(isSpec) {
 }
 
 function updateSpectatorCount(count) {
-    spectatorBadgeCount.textContent = count;
     spectatorChipCount.textContent = count;
-    if (count > 0) {
-        spectatorChip.style.display = 'block';
-    } else {
-        spectatorChip.style.display = 'none';
-    }
-    // Also update banner count for spectators themselves
-    spectatorBanner.innerHTML = `👁 YOU ARE SPECTATING &nbsp;|&nbsp; <span id="spectator-count-badge">${count}</span> SPECTATOR(S) WATCHING`;
+    spectatorChip.style.display = count > 0 ? 'block' : 'none';
+    spectatorBanner.innerHTML = `👁 YOU ARE SPECTATING &nbsp;|&nbsp; <span>${count}</span> SPECTATOR(S) WATCHING`;
 }
 
 function showIngameToast(name, action) {
-    const icons   = { joined:'➕', left:'➖', spectating:'👁' };
-    const labels  = { joined:'joined', left:'left', spectating:'is now spectating' };
+    const icons  = {joined:'➕', left:'➖', spectating:'👁'};
+    const labels = {joined:'joined', left:'left', spectating:'is now spectating'};
     const toast = document.createElement('div');
     toast.className = `ig-toast ${action}`;
     toast.textContent = `${icons[action]||''} ${name} ${labels[action]||action}`;
     ingameActivity.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; }, 2500);
+    setTimeout(() => { toast.style.opacity='0'; toast.style.transition='opacity 0.5s'; }, 2500);
     setTimeout(() => { if (toast.parentNode) ingameActivity.removeChild(toast); }, 3000);
 }
 
 // ── Socket Events ──
 socket.on('gameInfo', (data) => {
     if (data.name) myName = data.name;
-    if (data.totalPlayers) totalPlayers = data.totalPlayers;
+    if (data.totalPlayers) {
+        totalPlayers = data.totalPlayers;
+        updateReadyCounter(0, totalPlayers);
+    }
     if (data.wins) lobbyWins = data.wins;
     if (data.isSpectator) setSpectatorMode(true);
 });
 
+socket.on('readyUpdate', ({ ready, total }) => {
+    updateReadyCounter(ready, total);
+});
+
 socket.on('joinedAsSpectator', () => {
     setSpectatorMode(true);
-    // Don't start game loop — just show the canvas as-is
-    fetchAllPokemon(); // still load so canvas isn't blank
+    fetchAllPokemon();
 });
 
 socket.on('spectatorGameState', (data) => {
@@ -201,10 +229,7 @@ function showPostGame(winCreditName, displayName) {
         ? `🏆 ${displayName.toUpperCase()} WINS!`
         : '🤝 DRAW!';
 
-    // Credit the win locally immediately
-    if (winCreditName) {
-        lobbyWins[winCreditName] = (lobbyWins[winCreditName] || 0) + 1;
-    }
+    if (winCreditName) lobbyWins[winCreditName] = (lobbyWins[winCreditName] || 0) + 1;
     socket.emit('reportWin', { winner: winCreditName });
 
     playerVotes = {};
@@ -266,7 +291,7 @@ function renderVotes() {
     playVoteCount.textContent = playCount;
     voteListEl.innerHTML = entries.length === 0
         ? '<div style="color:#555;font-size:0.42rem;padding:8px;">Waiting for votes...</div>'
-        : entries.map(([name, vote]) => `
+        : entries.map(([name,vote]) => `
             <div class="vote-row">
                 <span class="vote-name">${name}</span>
                 <span class="badge ${vote==='play'?'badge-play':'badge-quit'}">${vote==='play'?'▶ PLAY':'✖ QUIT'}</span>
@@ -301,6 +326,7 @@ function resetForNewGame() {
     hpList.innerHTML = '';
     playerProfile.classList.add('hidden');
     startBtn.classList.add('hidden');
+    updateReadyCounter(0, totalPlayers);
     if (!amSpectator) selectionOverlay.style.display = 'flex';
     statusBanner.className = '';
     statusBanner.innerText = amSpectator ? 'SPECTATING...' : 'LOADING POKÉDEX...';
@@ -313,7 +339,7 @@ async function fetchAllPokemon() {
     try {
         const res = await fetch("https://pokeapi.co/api/v2/pokemon?limit=1025&offset=0");
         const data = await res.json();
-        allPokemonPool = data.results.map((p,i) => ({ name: formatName(p.name), id: i+1 }));
+        allPokemonPool = data.results.map((p,i) => ({name:formatName(p.name),id:i+1}));
         if (!amSpectator) {
             gameState = "SELECT";
             initSelection();
@@ -336,7 +362,7 @@ async function fetchPokemonType(id) {
 }
 
 class Pokemon {
-    constructor(name, id, type) {
+    constructor(name,id,type) {
         this.name=name; this.type=type; this.atk=80; this.def=80;
         this.moves=TYPE_MOVES[type]||TYPE_MOVES["Normal"];
         this.hp=150; this.maxHp=150;
@@ -363,9 +389,9 @@ class Pokemon {
 }
 
 function addToLog(msg) {
-    const entry=document.createElement('div');
-    entry.className="log-entry"; entry.innerHTML=msg;
-    logContent.appendChild(entry);
+    const e=document.createElement('div');
+    e.className="log-entry"; e.innerHTML=msg;
+    logContent.appendChild(e);
     logContent.scrollTop=logContent.scrollHeight;
 }
 
@@ -376,14 +402,14 @@ function updateSidebarProfile() {
         targetPkmnSprite.src=playerChoice.target.img.src; targetPkmnSprite.style.opacity='1';
     } else {
         const e=fighters.find(f=>f!==playerChoice&&f.hp>0);
-        if (e) { targetPkmnSprite.src=e.img.src; targetPkmnSprite.style.opacity='1'; }
+        if(e){targetPkmnSprite.src=e.img.src;targetPkmnSprite.style.opacity='1';}
         else targetPkmnSprite.style.opacity='0.3';
     }
 }
 
 function updateUI() {
     if (!amSpectator) updateSidebarProfile();
-    hpList.innerHTML = fighters.map(f=>`
+    hpList.innerHTML=fighters.map(f=>`
         <div class="hp-card" style="border-color:${playerChoice===f?'#ffcb05':(f.hp<=0?'#555':TYPE_COLORS[f.type]||'#aaa')};opacity:${f.hp<=0?0.4:1}">
             <div class="hp-card-name">
                 ${f.name}${playerChoice===f?`<img src="${POKEBALL_URL}" class="owner-icon">`:''}
@@ -399,14 +425,16 @@ function loop() {
     if (gameState==="SPECTATE") {
         statusBanner.innerText="SPECTATING...";
         fighters.forEach(f=>f.draw());
-        requestAnimationFrame(loop);
-        return;
+        requestAnimationFrame(loop); return;
     }
     if (gameState==="LOADING") { statusBanner.innerText="LOADING POKÉDEX..."; }
-    else if (gameState==="SELECT") { statusBanner.innerText=`CHOOSE YOUR POKEMON: ${selectionTimeLeft}s`; statusBanner.className="selecting"; }
+    else if (gameState==="SELECT") {
+        statusBanner.innerText=`CHOOSE YOUR POKEMON: ${selectionTimeLeft}s`;
+        statusBanner.className="selecting";
+    }
     else if (gameState==="COUNTDOWN") {
         countdownTimer--; statusBanner.innerText="STARTING IN: "+Math.ceil(countdownTimer/60);
-        if (countdownTimer<=0) { gameState="MOVE"; phaseTimer=300; }
+        if(countdownTimer<=0){gameState="MOVE";phaseTimer=300;}
     }
     else if (gameState==="MOVE") {
         statusBanner.innerText="BATTLE PHASE"; phaseTimer--;
@@ -415,7 +443,7 @@ function loop() {
             if(f.x<30||f.x>canvas.width-30)f.vx*=-1;
             if(f.y<30||f.y>canvas.height-30)f.vy*=-1;
         });
-        if (phaseTimer<=0) {
+        if(phaseTimer<=0){
             gameState="DECIDE"; phaseTimer=120;
             fighters.forEach(f=>{
                 if(f.hp<=0)return;
@@ -430,7 +458,7 @@ function loop() {
     }
     else if (gameState==="DECIDE") {
         statusBanner.innerText="EXECUTION"; phaseTimer--;
-        if (phaseTimer<=0) {
+        if(phaseTimer<=0){
             fighters.forEach(f=>{
                 if(f.hp<=0||!f.target||f.target.hp<=0)return;
                 if(f.currentMoveCategory==="debuff"){
@@ -457,7 +485,7 @@ function loop() {
     updateUI();
 
     const alive=fighters.filter(f=>f.hp>0);
-    if (alive.length===1&&!["SELECT","COUNTDOWN","LOADING","SPECTATE"].includes(gameState)) {
+    if(alive.length===1&&!["SELECT","COUNTDOWN","LOADING","SPECTATE"].includes(gameState)){
         const wp=alive[0];
         const iMyWin=playerChoice&&playerChoice===wp;
         const displayName=wp.name;
@@ -465,7 +493,7 @@ function loop() {
         statusBanner.innerText=wp.name.toUpperCase()+" WINS!";
         statusBanner.className='';
         gameState="WIN";
-        setTimeout(()=>showPostGame(creditName, displayName),1500);
+        setTimeout(()=>showPostGame(creditName,displayName),1500);
         return;
     }
 
@@ -473,6 +501,9 @@ function loop() {
 }
 
 async function initSelection() {
+    // Initialize ready counter with current total
+    updateReadyCounter(0, totalPlayers);
+
     const shuffled=[...allPokemonPool].sort(()=>Math.random()-0.5).slice(0,10);
     pokemonGrid.innerHTML=shuffled.map(p=>`
         <div class="select-card" id="card-${p.id}" style="opacity:0.5;pointer-events:none;">
@@ -495,15 +526,21 @@ async function initSelection() {
     });
 }
 
-function selectPokemon(pokemon,element) {
+function selectPokemon(pokemon, element) {
     if (amSpectator) return;
-    playerChoice=pokemon;
+    const isFirstChoice = !playerChoice;
+    playerChoice = pokemon;
     document.querySelectorAll('.select-card').forEach(c=>c.classList.remove('selected'));
     element.classList.add('selected');
     startBtn.classList.remove('hidden');
     playerProfile.classList.remove('hidden');
-    chosenPkmnSprite.src=pokemon.img.src;
+    chosenPkmnSprite.src = pokemon.img.src;
     addToLog(`<b style="color:#ffcb05">Locked in ${pokemon.name}!</b>`);
+
+    // Notify server this player is ready (only emit once per selection phase)
+    if (isFirstChoice) {
+        socket.emit('playerReady');
+    }
 }
 
 function startBattle() {
@@ -515,14 +552,15 @@ function startBattle() {
 }
 
 setInterval(()=>{
-    if (gameState==="SELECT"&&!amSpectator) {
+    if(gameState==="SELECT"&&!amSpectator){
         selectionTimeLeft--;
-        if (timerDisplay) timerDisplay.innerText=selectionTimeLeft;
-        if (selectionTimeLeft<=0) {
-            if (!playerChoice) {
+        if(timerDisplay) timerDisplay.innerText=selectionTimeLeft;
+        if(selectionTimeLeft<=0){
+            if(!playerChoice){
                 playerChoice=fighters[0];
                 playerProfile.classList.remove('hidden');
                 chosenPkmnSprite.src=playerChoice.img.src;
+                socket.emit('playerReady');
             }
             startBattle();
         }
