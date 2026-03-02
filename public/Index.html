@@ -267,9 +267,10 @@
         socket.emit('joinRoom', { code, name });
     }
 
+    // ── FIXED: Now sends the correct event name your server expects ──
     function hostStartGame() {
         if (!isHost || !currentRoom) return;
-        socket.emit('hostStart', currentRoom);
+        socket.emit('hostStartBattle');   // ← THIS IS THE FIX
     }
 
     function enterLobby(code, host) {
@@ -297,12 +298,10 @@
 
         document.getElementById('player-count-num').textContent = active.length;
 
-        // Render active players
         active.forEach((p, i) => {
             list.appendChild(makePlayerRow(p, i, false));
         });
 
-        // Render spectators if any
         if (spectators.length > 0) {
             const divider = document.createElement('div');
             divider.style.cssText = 'font-size:0.38rem;color:#3498db;margin:8px 0 4px;text-align:left;letter-spacing:1px;';
@@ -339,9 +338,7 @@
         toast.className = `activity-toast ${action}`;
         toast.textContent = `${icons[action] || ''} ${name} ${labels[action] || action}`;
         feed.insertBefore(toast, feed.firstChild);
-        // Keep max 3 toasts
         while (feed.children.length > 3) feed.removeChild(feed.lastChild);
-        // Fade out after 4s
         setTimeout(() => { if (toast.parentNode) toast.style.opacity = '0'; }, 3500);
         setTimeout(() => { if (toast.parentNode) feed.removeChild(toast); }, 4000);
     }
@@ -358,7 +355,6 @@
 
     socket.on('updatePlayers', (players) => {
         renderPlayers(players);
-        // Check if I became host
         const me = players.find(p => p.id === mySocketId);
         if (me && me.isHost && !isHost) {
             isHost = true;
@@ -381,6 +377,7 @@
         document.getElementById('host-waiting').style.display = 'none';
     });
 
+    // ←←← THIS IS WHAT MAKES THE START BUTTON WORK ←←←
     socket.on('startGame', () => {
         window.location.href = '/pokerumble.html';
     });
