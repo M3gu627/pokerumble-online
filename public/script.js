@@ -1,4 +1,3 @@
-<DOCUMENT filename="script.js">
 const canvas = document.getElementById('arena');
 const ctx = canvas.getContext('2d');
 const hpList = document.getElementById('hp-list');
@@ -14,7 +13,6 @@ const chosenPkmnSprite = document.getElementById('chosen-pkmn-sprite');
 const targetPkmnSprite = document.getElementById('target-pkmn-sprite');
 const faintedOverlay = document.getElementById('fainted-overlay');
 
-// Post-game + spectator elements (unchanged)
 const postgameOverlay  = document.getElementById('postgame-overlay');
 const winnerBanner     = document.getElementById('winner-banner');
 const voteListEl       = document.getElementById('vote-list');
@@ -55,19 +53,26 @@ let amSpectator = false;
 let currentReady = 0;
 let currentTotal = 1;
 
-let prng = Math.random;                    // ← will be replaced with seeded version
+let prng = Math.random;
 let simulationInterval = null;
 
 const POKEBALL_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png";
 
-const TYPE_COLORS = { /* unchanged */ };
-const TYPE_CHART = { /* unchanged */ };
-const TYPE_MOVES = { /* unchanged */ };
+const TYPE_COLORS = {
+    "Fire":"#ff4422","Water":"#3399ff","Grass":"#77cc55","Electric":"#ffcc33",
+    "Rock":"#bbaa66","Ghost":"#6666bb","Fighting":"#bb5544","Flying":"#8899ff",
+    "Psychic":"#ff5599","Ground":"#ddbb55","Bug":"#aabb22","Fairy":"#ee99ee",
+    "Dragon":"#7766ee","Dark":"#775544","Steel":"#aaaabb","Ice":"#66ccff",
+    "Poison":"#aa5599","Normal":"#aaaa99"
+};
+
+const TYPE_CHART = { /* (your full TYPE_CHART from original — paste it here) */ };
+const TYPE_MOVES = { /* (your full TYPE_MOVES from original — paste it here) */ };
 
 function formatName(n) { return n.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function normalizeType(t) { return t.charAt(0).toUpperCase()+t.slice(1).toLowerCase(); }
 
-// ── SEEDED PRNG (for perfect sync across clients) ──
+// ── SEEDED PRNG ──
 function createPRNG(seedStr) {
     let seed = parseInt(seedStr, 36) || 12345;
     return function() {
@@ -76,34 +81,92 @@ function createPRNG(seedStr) {
     };
 }
 
-// ── READY COUNTER (unchanged) ──
-function updateReadyCounter(ready, total) { /* unchanged */ }
+// ── READY COUNTER ──
+function updateReadyCounter(ready, total) {
+    currentReady = ready;
+    currentTotal = total;
+    readyFraction.textContent = `${ready}/${total}`;
+    readyLabel.textContent = ready === total ? '✔ ALL READY!' : 'READY';
+    const allReady = ready === total && total > 0;
+    readyFraction.classList.toggle('all-ready', allReady);
+    readyLabel.classList.toggle('all-ready', allReady);
+    readyPips.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+        const pip = document.createElement('div');
+        pip.className = 'pip' + (i < ready ? ' ready' : '');
+        readyPips.appendChild(pip);
+    }
+}
 
-// ── SPECTATOR HELPERS (unchanged) ──
-function setSpectatorMode(isSpec) { /* unchanged */ }
-function updateSpectatorCount(count) { /* unchanged */ }
-function showIngameToast(name, action) { /* unchanged */ }
+// ── SPECTATOR HELPERS ──
+function setSpectatorMode(isSpec) {
+    amSpectator = isSpec;
+    if (isSpec) {
+        spectatorBanner.style.display = 'block';
+        spectatorVoteNote.style.display = 'block';
+        document.body.classList.add('is-spectator');
+        selectionOverlay.style.display = 'none';
+        statusBanner.innerText = 'SPECTATING...';
+    } else {
+        spectatorBanner.style.display = 'none';
+        spectatorVoteNote.style.display = 'none';
+        document.body.classList.remove('is-spectator');
+    }
+}
 
-// ── SOCKET EVENTS (updated) ──
-socket.on('gameInfo', (data) => { /* unchanged */ });
-socket.on('readyUpdate', ({ ready, total }) => { updateReadyCounter(ready, total); });
-socket.on('joinedAsSpectator', () => { setSpectatorMode(true); });
-socket.on('spectatorGameState', (data) => { /* unchanged */ });
-socket.on('spectatorCount', (count) => { updateSpectatorCount(count); });
-socket.on('playerActivity', ({ name, action }) => { showIngameToast(name, action); });
+function updateSpectatorCount(count) {
+    spectatorChipCount.textContent = count;
+    spectatorChip.style.display = count > 0 ? 'block' : 'none';
+    spectatorBanner.innerHTML = `👁 YOU ARE SPECTATING &nbsp;|&nbsp; <span>${count}</span> SPECTATOR(S) WATCHING`;
+}
+
+function showIngameToast(name, action) {
+    const icons = {joined:'➕', left:'➖', spectating:'👁'};
+    const labels = {joined:'joined', left:'left', spectating:'is now spectating'};
+    const toast = document.createElement('div');
+    toast.className = `ig-toast ${action}`;
+    toast.textContent = `${icons[action]||''} ${name} ${labels[action]||action}`;
+    ingameActivity.appendChild(toast);
+    setTimeout(() => { toast.style.opacity='0'; }, 2500);
+    setTimeout(() => { if (toast.parentNode) ingameActivity.removeChild(toast); }, 3000);
+}
+
+// ── SOCKET EVENTS ──
+socket.on('gameInfo', (data) => {
+    if (data.name) myName = data.name;
+    if (data.totalPlayers) totalPlayers = data.totalPlayers;
+    if (data.wins) lobbyWins = data.wins;
+    if (data.isSpectator) setSpectatorMode(true);
+    updateReadyCounter(0, totalPlayers);
+});
+
+socket.on('readyUpdate', ({ ready, total }) => updateReadyCounter(ready, total));
+socket.on('joinedAsSpectator', () => setSpectatorMode(true));
+socket.on('spectatorGameState', (data) => {
+    if (data.wins) lobbyWins = data.wins;
+    if (data.totalPlayers) totalPlayers = data.totalPlayers;
+    updateSpectatorCount(data.spectatorCount || 0);
+});
+socket.on('spectatorCount', updateSpectatorCount);
+socket.on('playerActivity', showIngameToast);
 socket.on('playerVoteUpdate', (votes) => { playerVotes = votes; renderVotes(); });
 socket.on('winsUpdate', (wins) => { lobbyWins = wins; renderWins(); });
 socket.on('restartGame', () => { amSpectator = false; resetForNewGame(); });
 socket.on('allQuit', () => { window.location.href = '/'; });
 
-// ── NEW: SHARED POKEMON POOL + BATTLE START (authoritative sync) ──
+// ── SHARED POOL + BATTLE START (fully synced) ──
+function createFighters() {
+    fighters = allPokemonPool.map(p => new Pokemon(p.name, p.id, p.type));
+}
+
 socket.on('sharedPokemonPool', (pool) => {
     allPokemonPool = pool;
+    createFighters();
     if (!amSpectator) {
         gameState = "SELECT";
-        initSelection();
         selectionTimeLeft = 60;
         if (timerDisplay) timerDisplay.innerText = 60;
+        initSelection();
     } else {
         gameState = "SPECTATE";
     }
@@ -112,19 +175,15 @@ socket.on('sharedPokemonPool', (pool) => {
 
 socket.on('battleStart', ({ seed }) => {
     prng = createPRNG(seed);
-
     selectionOverlay.style.display = 'none';
 
-    // Reset EVERYTHING with the SAME seeded random (positions, velocities, etc.)
     fighters.forEach(f => {
         f.x = prng() * (canvas.width - 100) + 50;
         f.y = prng() * (canvas.height - 100) + 50;
         f.vx = (prng() - 0.5) * 4;
         f.vy = (prng() - 0.5) * 4;
-        f.hp = 150;
-        f.maxHp = 150;
-        f.atk = 80;
-        f.def = 80;
+        f.hp = 150; f.maxHp = 150;
+        f.atk = 80; f.def = 80;
         f.target = null;
         f.currentMoveName = "";
         f.currentMoveCategory = "";
@@ -135,19 +194,87 @@ socket.on('battleStart', ({ seed }) => {
     phaseTimer = 0;
     logContent.innerHTML = '';
 
-    // Fixed-tick simulation (16ms ≈ 60 FPS) so everyone advances identically
     if (simulationInterval) clearInterval(simulationInterval);
     simulationInterval = setInterval(simulationTick, 16);
-
-    console.log("Battle simulation started with shared seed");
 });
 
-// ── POST-GAME (unchanged) ──
-function showPostGame(winCreditName, displayName) { /* unchanged */ }
-function votePlayAgain() { /* unchanged */ }
-function voteQuit() { /* unchanged */ }
-function renderVotes() { /* unchanged */ }
-function renderWins() { /* unchanged */ }
+// ── POST GAME ──
+function showPostGame(displayName) {
+    if (pgInterval) { clearInterval(pgInterval); pgInterval = null; }
+    winnerBanner.textContent = `🏆 ${displayName.toUpperCase()} WINS!`;
+
+    playerVotes = {};
+    myVote = null;
+    pgCountdown = 15;
+    pgTimerEl.textContent = '15';
+    btnPlayAgain.disabled = false;
+    btnQuit.disabled = false;
+    playVoteCount.textContent = '0';
+    totalPlayerCount.textContent = totalPlayers;
+
+    renderVotes();
+    renderWins();
+    postgameOverlay.classList.add('show');
+
+    pgInterval = setInterval(() => {
+        pgCountdown--;
+        pgTimerEl.textContent = pgCountdown;
+        if (pgCountdown <= 0) {
+            clearInterval(pgInterval); pgInterval = null;
+            if (!myVote) {
+                myVote = 'play';
+                btnPlayAgain.disabled = true;
+                btnQuit.disabled = true;
+                socket.emit('playerVote', { name: myName, vote: 'play' });
+                if (totalPlayers <= 1) setTimeout(resetForNewGame, 500);
+            }
+        }
+    }, 1000);
+}
+
+function votePlayAgain() {
+    if (myVote) return;
+    myVote = 'play';
+    btnPlayAgain.disabled = true;
+    btnQuit.disabled = true;
+    socket.emit('playerVote', { name: myName, vote: 'play' });
+    if (totalPlayers <= 1) setTimeout(resetForNewGame, 500);
+}
+
+function voteQuit() {
+    if (myVote) return;
+    myVote = 'quit';
+    btnPlayAgain.disabled = true;
+    btnQuit.disabled = true;
+    socket.emit('playerVote', { name: myName, vote: 'quit' });
+    if (totalPlayers <= 1) setTimeout(() => window.location.href = '/', 500);
+}
+
+function renderVotes() {
+    const entries = Object.entries(playerVotes);
+    const playCount = entries.filter(([,v]) => v === 'play').length;
+    playVoteCount.textContent = playCount;
+    voteListEl.innerHTML = entries.length === 0
+        ? '<div style="color:#555;font-size:0.42rem;padding:8px;">Waiting for votes...</div>'
+        : entries.map(([name,vote]) => `
+            <div class="vote-row">
+                <span class="vote-name">${name}</span>
+                <span class="badge ${vote==='play'?'badge-play':'badge-quit'}">${vote==='play'?'▶ PLAY':'✖ QUIT'}</span>
+            </div>`).join('');
+}
+
+function renderWins() {
+    const sorted = Object.entries(lobbyWins).sort((a,b)=>b[1]-a[1]);
+    winsListEl.innerHTML = sorted.length === 0
+        ? '<div style="color:#555;font-size:0.42rem;padding:8px;">No wins yet</div>'
+        : sorted.map(([name,wins],i) => `
+            <div class="wins-row ${i===0?'top':''}">
+                <span class="wins-rank">${i===0?'👑':`#${i+1}`}</span>
+                <span class="wins-name">${name}</span>
+                <span class="wins-count">${wins}W</span>
+            </div>`).join('');
+}
+
 function resetForNewGame() {
     if (simulationInterval) { clearInterval(simulationInterval); simulationInterval = null; }
     if (pgInterval) { clearInterval(pgInterval); pgInterval = null; }
@@ -166,10 +293,9 @@ function resetForNewGame() {
     if (!amSpectator) selectionOverlay.style.display = 'flex';
     statusBanner.className = '';
     statusBanner.innerText = amSpectator ? 'SPECTATING...' : 'LOADING POKÉDEX...';
-    // No fetchAllPokemon — waiting for new shared pool from server
 }
 
-// ── POKEMON CLASS (positions now set in battleStart) ──
+// ── POKEMON CLASS ──
 class Pokemon {
     constructor(name, id, type) {
         this.name = name; this.type = type; this.atk = 80; this.def = 80;
@@ -180,19 +306,57 @@ class Pokemon {
         this.x = 400; this.y = 300; this.vx = 0; this.vy = 0;
         this.target = null; this.currentMoveName = ""; this.currentMoveCategory = "";
     }
-    draw() { /* unchanged */ }
+    draw() {
+        if (this.hp <= 0) return;
+        if (gameState === "DECIDE" && this.target) {
+            ctx.beginPath(); ctx.setLineDash([5,5]);
+            ctx.moveTo(this.x, this.y); ctx.lineTo(this.target.x, this.target.y);
+            ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke(); ctx.setLineDash([]);
+        }
+        ctx.drawImage(this.img, this.x-30, this.y-30, 60, 60);
+        if (gameState === "DECIDE") {
+            ctx.fillStyle = "#ffcb05"; ctx.font = "bold 11px Arial"; ctx.textAlign = "center";
+            ctx.fillText(this.currentMoveName.toUpperCase(), this.x, this.y-45);
+        }
+    }
 }
 
-// ── UI HELPERS (unchanged) ──
-function addToLog(msg) { /* unchanged */ }
-function updateSidebarProfile() { /* unchanged */ }
-function updateUI() { /* unchanged */ }
+// ── UI HELPERS ──
+function addToLog(msg) {
+    const e = document.createElement('div');
+    e.className = "log-entry"; e.innerHTML = msg;
+    logContent.appendChild(e);
+    logContent.scrollTop = logContent.scrollHeight;
+}
 
-// ── FIXED-TICK SIMULATION (authoritative, seeded, identical on every client) ──
+function updateSidebarProfile() {
+    if (!playerChoice) return;
+    playerChoice.hp <= 0 ? faintedOverlay.classList.remove('hidden') : faintedOverlay.classList.add('hidden');
+    if (playerChoice.target && playerChoice.target.hp > 0) {
+        targetPkmnSprite.src = playerChoice.target.img.src; targetPkmnSprite.style.opacity = '1';
+    } else {
+        const e = fighters.find(f => f !== playerChoice && f.hp > 0);
+        if (e) { targetPkmnSprite.src = e.img.src; targetPkmnSprite.style.opacity = '1'; }
+        else targetPkmnSprite.style.opacity = '0.3';
+    }
+}
+
+function updateUI() {
+    if (!amSpectator) updateSidebarProfile();
+    hpList.innerHTML = fighters.map(f => `
+        <div class="hp-card" style="border-color:${playerChoice===f?'#ffcb05':(f.hp<=0?'#555':TYPE_COLORS[f.type]||'#aaa')};opacity:${f.hp<=0?0.4:1}">
+            <div class="hp-card-name">
+                ${f.name}${playerChoice===f?`<img src="${POKEBALL_URL}" class="owner-icon">`:''}
+                <span style="float:right;color:${TYPE_COLORS[f.type]||'#aaa'}">[${f.type}]</span>
+            </div>
+            <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${(f.hp/f.maxHp)*100}%;background:${f.hp>50?'#2ecc71':'#e74c3c'}"></div></div>
+        </div>`).join('');
+}
+
+// ── FIXED-TICK SIMULATION (identical on every client) ──
 function simulationTick() {
     if (gameState === "COUNTDOWN") {
         countdownTimer--;
-        statusBanner.innerText = "STARTING IN: " + Math.ceil(countdownTimer / 60);
         if (countdownTimer <= 0) {
             gameState = "MOVE";
             phaseTimer = 300;
@@ -210,27 +374,18 @@ function simulationTick() {
             phaseTimer = 120;
             fighters.forEach(f => {
                 if (f.hp <= 0) return;
-                let minDist = Infinity;
-                let target = null;
+                let minDist = Infinity, target = null;
                 fighters.forEach(o => {
                     if (o !== f && o.hp > 0) {
-                        let d = Math.hypot(o.x - f.x, o.y - f.y);
+                        const d = Math.hypot(o.x - f.x, o.y - f.y);
                         if (d < minDist) { minDist = d; target = o; }
                     }
                 });
                 f.target = target;
-
                 const r = prng();
-                if (r < 0.2) {
-                    f.currentMoveCategory = "debuff";
-                    f.currentMoveName = f.moves.debuff;
-                } else if (minDist < 110) {
-                    f.currentMoveCategory = "short";
-                    f.currentMoveName = f.moves.short;
-                } else {
-                    f.currentMoveCategory = "long";
-                    f.currentMoveName = f.moves.long;
-                }
+                if (r < 0.2) { f.currentMoveCategory = "debuff"; f.currentMoveName = f.moves.debuff; }
+                else if (minDist < 110) { f.currentMoveCategory = "short"; f.currentMoveName = f.moves.short; }
+                else { f.currentMoveCategory = "long"; f.currentMoveName = f.moves.long; }
             });
         }
     } else if (gameState === "DECIDE") {
@@ -260,24 +415,23 @@ function simulationTick() {
         }
     }
 
-    // WIN DETECTION (same on every client because simulation is identical)
+    // WIN CHECK (same on every client)
     const alive = fighters.filter(f => f.hp > 0);
     if (alive.length === 1 && !["SELECT","COUNTDOWN","LOADING","SPECTATE"].includes(gameState)) {
         const wp = alive[0];
-        const iMyWin = playerChoice && playerChoice === wp;
         const displayName = wp.name;
-        const creditName = iMyWin ? myName : wp.name;
+        const isMyWin = playerChoice && playerChoice === wp;
+        if (isMyWin) socket.emit('reportWin', { winner: myName });
 
         statusBanner.innerText = wp.name.toUpperCase() + " WINS!";
         statusBanner.className = '';
         gameState = "WIN";
-
-        clearInterval(simulationInterval);
-        setTimeout(() => showPostGame(creditName, displayName), 1500);
+        if (simulationInterval) clearInterval(simulationInterval);
+        setTimeout(() => showPostGame(displayName), 1500);
     }
 }
 
-// ── RENDER LOOP (only drawing + UI) ──
+// ── RENDER LOOP (drawing only) ──
 function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -292,19 +446,22 @@ function loop() {
     } else if (gameState === "SELECT") {
         statusBanner.innerText = `CHOOSE YOUR POKEMON: ${selectionTimeLeft}s`;
         statusBanner.className = "selecting";
+    } else if (gameState === "COUNTDOWN") {
+        statusBanner.innerText = "STARTING IN: " + Math.ceil(countdownTimer / 60);
+    } else if (gameState === "MOVE") {
+        statusBanner.innerText = "BATTLE PHASE";
+    } else if (gameState === "DECIDE") {
+        statusBanner.innerText = "EXECUTION";
     }
 
     fighters.forEach(f => f.draw());
     updateUI();
-
     requestAnimationFrame(loop);
 }
 
-// ── SELECTION (now uses server pool + deterministic order) ──
+// ── SELECTION UI ──
 function initSelection() {
-    const sortedPool = [...allPokemonPool].sort((a, b) => a.id - b.id);
-    fighters = sortedPool.map(p => new Pokemon(p.name, p.id, p.type));
-
+    updateReadyCounter(0, totalPlayers);
     pokemonGrid.innerHTML = '';
     fighters.forEach(f => {
         const card = document.createElement('div');
@@ -322,52 +479,31 @@ function selectPokemon(pokemon, element) {
     if (amSpectator) return;
     const isFirstChoice = !playerChoice;
     playerChoice = pokemon;
-
     document.querySelectorAll('.select-card').forEach(c => c.classList.remove('selected'));
     element.classList.add('selected');
-
     playerProfile.classList.remove('hidden');
     chosenPkmnSprite.src = pokemon.img.src;
     addToLog(`<b style="color:#ffcb05">Locked in ${pokemon.name}!</b>`);
-
-    if (isFirstChoice) {
-        socket.emit('playerReady');
-    }
+    if (isFirstChoice) socket.emit('playerReady');
 }
 
-// ── SELECTION TIMEOUT (auto-lock) ──
+// ── SELECTION AUTO-READY ──
 setInterval(() => {
     if (gameState === "SELECT" && !amSpectator) {
         selectionTimeLeft--;
         if (timerDisplay) timerDisplay.innerText = selectionTimeLeft;
-        if (selectionTimeLeft <= 0) {
-            if (!playerChoice) {
-                playerChoice = fighters[0];
-                playerProfile.classList.remove('hidden');
-                chosenPkmnSprite.src = playerChoice.img.src;
-                socket.emit('playerReady');
-            }
-            // NO local startBattle — server controls it
+        if (selectionTimeLeft <= 0 && !playerChoice) {
+            playerChoice = fighters[0];
+            playerProfile.classList.remove('hidden');
+            chosenPkmnSprite.src = playerChoice.img.src;
+            socket.emit('playerReady');
         }
     }
 }, 1000);
 
-// ── START (removed local startBattle — everything is now server-driven) ──
 function startBattle() {
-    // This function is no longer used (auto-start via server)
-    console.warn("startBattle() is deprecated — battle is now fully synced by server");
+    console.warn("startBattle() is no longer used — battle starts automatically when everyone is ready");
 }
 
-// ── INITIAL LOAD (no more local fetch) ──
-fetchAllPokemon = () => {}; // dummy (pool comes from server)
-
-// Post-game + spectator functions (unchanged)
-function showPostGame(...) { /* full unchanged code from original */ }
-function votePlayAgain() { /* unchanged */ }
-function voteQuit() { /* unchanged */ }
-function renderVotes() { /* unchanged */ }
-function renderWins() { /* unchanged */ }
-
-// ── RUN ──
+// ── START ──
 loop();
-</DOCUMENT>
