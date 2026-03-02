@@ -20,7 +20,6 @@
             padding: 20px;
         }
 
-        /* Pokeball logo */
         .pokeball {
             width: 60px; height: 60px;
             background: linear-gradient(180deg, #e74c3c 50%, white 50%);
@@ -40,20 +39,8 @@
             border-radius: 50%;
         }
 
-        h1 {
-            font-size: 1.4rem;
-            color: #ffcb05;
-            text-shadow: 3px 3px 0 #000;
-            margin-bottom: 8px;
-            letter-spacing: 2px;
-        }
-
-        .subtitle {
-            font-size: 0.5rem;
-            color: #aaa;
-            margin-bottom: 40px;
-            letter-spacing: 1px;
-        }
+        h1 { font-size: 1.4rem; color: #ffcb05; text-shadow: 3px 3px 0 #000; margin-bottom: 8px; letter-spacing: 2px; }
+        .subtitle { font-size: 0.5rem; color: #aaa; margin-bottom: 40px; letter-spacing: 1px; }
 
         .card {
             background: #1e272e;
@@ -64,13 +51,7 @@
             max-width: 480px;
             margin-bottom: 20px;
         }
-
-        .card-title {
-            font-size: 0.6rem;
-            color: #ffcb05;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
-        }
+        .card-title { font-size: 0.6rem; color: #ffcb05; margin-bottom: 20px; letter-spacing: 1px; }
 
         input {
             width: 100%;
@@ -100,85 +81,34 @@
             letter-spacing: 1px;
         }
         .btn:hover { transform: scale(1.02); }
-        .btn:active { transform: scale(0.98); }
-
-        .btn-yellow {
-            background: #ffcb05;
-            color: #111;
-        }
+        .btn-yellow { background: #ffcb05; color: #111; }
         .btn-yellow:hover { background: #ffd633; }
-
-        .btn-blue {
-            background: #2980b9;
-            color: white;
-        }
+        .btn-blue { background: #2980b9; color: white; }
         .btn-blue:hover { background: #3498db; }
+        .btn-green { background: #27ae60; color: white; font-size: 0.8rem; padding: 16px; box-shadow: 0 4px 20px rgba(39,174,96,0.4); }
+        .btn-green:hover { background: #2ecc71; }
 
-        .btn-green {
-            background: #27ae60;
-            color: white;
-            font-size: 0.8rem;
-            padding: 16px;
-            box-shadow: 0 4px 20px rgba(39, 174, 96, 0.4);
-        }
-        .btn-green:hover { background: #2ecc71; box-shadow: 0 6px 24px rgba(39,174,96,0.6); }
+        .divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: #555; font-size: 0.5rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #34495e; }
 
-        .btn-red {
-            background: #c0392b;
-            color: white;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 16px 0;
-            color: #555;
-            font-size: 0.5rem;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #34495e;
-        }
-
-        #status {
-            font-size: 0.55rem;
-            color: #e74c3c;
-            margin-top: 10px;
-            min-height: 20px;
-            letter-spacing: 0.5px;
-        }
+        #status { font-size: 0.55rem; color: #e74c3c; margin-top: 10px; min-height: 20px; }
         #status.success { color: #2ecc71; }
 
-        /* Lobby */
         #lobby-section { display: none; }
 
-        .room-code-display {
-            background: #0f0f12;
-            border: 2px dashed #ffcb05;
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
+        .room-code-display { background: #0f0f12; border: 2px dashed #ffcb05; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
         .room-code-label { font-size: 0.45rem; color: #aaa; margin-bottom: 8px; }
         .room-code-value { font-size: 1.8rem; color: #ffcb05; letter-spacing: 6px; text-shadow: 0 0 20px rgba(255,203,5,0.5); }
 
-        .player-count {
-            font-size: 0.55rem;
-            color: #aaa;
-            margin-bottom: 16px;
-        }
+        .player-count { font-size: 0.55rem; color: #aaa; margin-bottom: 16px; }
         .player-count span { color: #ffcb05; }
 
-        /* Player list */
         #player-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            margin-bottom: 20px;
-            max-height: 280px;
+            margin-bottom: 16px;
+            max-height: 300px;
             overflow-y: auto;
         }
         #player-list::-webkit-scrollbar { width: 4px; }
@@ -195,6 +125,7 @@
             animation: slideIn 0.3s ease;
         }
         .player-entry.is-host { border-left-color: #ffcb05; }
+        .player-entry.is-spectator { border-left-color: #3498db; opacity: 0.8; }
 
         @keyframes slideIn {
             from { opacity: 0; transform: translateX(-10px); }
@@ -204,51 +135,49 @@
         .player-avatar {
             width: 32px; height: 32px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-size: 0.7rem;
             font-weight: bold;
             flex-shrink: 0;
         }
+        .player-name { font-size: 0.55rem; flex: 1; text-align: left; }
 
-        .player-name {
-            font-size: 0.55rem;
-            flex: 1;
-            text-align: left;
-        }
-
-        .host-badge {
-            font-size: 0.4rem;
-            background: #ffcb05;
-            color: #111;
-            padding: 3px 6px;
-            border-radius: 4px;
-            letter-spacing: 0.5px;
-        }
-
-        .you-badge {
-            font-size: 0.4rem;
-            background: #2980b9;
-            color: white;
-            padding: 3px 6px;
-            border-radius: 4px;
-        }
+        .badge { font-size: 0.38rem; padding: 3px 6px; border-radius: 4px; letter-spacing: 0.5px; margin-left: 2px; }
+        .badge-host     { background: #ffcb05; color: #111; }
+        .badge-you      { background: #2980b9; color: white; }
+        .badge-spectator{ background: #3498db; color: white; }
 
         #start-btn-wrapper { display: none; margin-top: 8px; }
-
-        .waiting-text {
-            font-size: 0.45rem;
-            color: #777;
-            margin-top: 12px;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-
         #host-waiting { display: none; }
+
+        .waiting-text { font-size: 0.45rem; color: #777; margin-top: 12px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* Activity toast feed */
+        #activity-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 14px;
+            max-height: 80px;
+            overflow: hidden;
+        }
+        .activity-toast {
+            font-size: 0.4rem;
+            padding: 5px 10px;
+            border-radius: 6px;
+            animation: fadeIn 0.3s ease;
+        }
+        .activity-toast.joined    { background: rgba(46,204,113,0.15); border: 1px solid #2ecc71; color: #2ecc71; }
+        .activity-toast.left      { background: rgba(231,76,60,0.15);  border: 1px solid #e74c3c;  color: #e74c3c; }
+        .activity-toast.spectating{ background: rgba(52,152,219,0.15); border: 1px solid #3498db; color: #3498db; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+        .spectator-info {
+            font-size: 0.42rem;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -257,7 +186,6 @@
     <h1>PokeRumble</h1>
     <p class="subtitle">ONLINE BATTLE ARENA</p>
 
-    <!-- Join / Create Section -->
     <div class="card" id="join-section">
         <p class="card-title">▶ ENTER YOUR NAME</p>
         <input id="nameInput" placeholder="Your name..." maxlength="16">
@@ -268,30 +196,34 @@
         <div class="divider">OR</div>
 
         <p class="card-title">▶ JOIN A ROOM</p>
-        <input id="roomInput" placeholder="Enter room code..." maxlength="4" style="text-transform:uppercase; letter-spacing:4px;">
+        <input id="roomInput" placeholder="Enter room code..." maxlength="4" style="text-transform:uppercase;letter-spacing:4px;">
         <button class="btn btn-blue" onclick="joinRoom()">JOIN ROOM</button>
 
         <p id="status"></p>
     </div>
 
-    <!-- Lobby Section -->
     <div class="card" id="lobby-section">
         <div class="room-code-display">
             <div class="room-code-label">ROOM CODE</div>
             <div class="room-code-value" id="room-code-text">----</div>
         </div>
 
-        <div class="player-count">PLAYERS: <span id="player-count-num">1</span> / 10</div>
+        <div class="player-count">
+            PLAYERS: <span id="player-count-num">1</span> / 10
+            &nbsp;|&nbsp;
+            👁 SPECTATORS: <span id="spectator-count-num">0</span>
+        </div>
+
+        <!-- Activity feed -->
+        <div id="activity-feed"></div>
 
         <div id="player-list"></div>
 
-        <!-- Host controls -->
         <div id="start-btn-wrapper">
             <button class="btn btn-green" onclick="hostStartGame()">⚔ START BATTLE</button>
-            <p style="font-size:0.4rem; color:#777; margin-top:8px;">You are the host — start when ready</p>
+            <p style="font-size:0.4rem;color:#777;margin-top:8px;">You are the host — start when ready</p>
         </div>
 
-        <!-- Non-host waiting -->
         <div id="host-waiting">
             <p class="waiting-text">⏳ WAITING FOR HOST TO START...</p>
         </div>
@@ -309,10 +241,7 @@
 
     function getName() {
         const n = document.getElementById('nameInput').value.trim();
-        if (!n) {
-            showStatus('Please enter your name first!', false);
-            return null;
-        }
+        if (!n) { showStatus('Please enter your name first!', false); return null; }
         return n;
     }
 
@@ -325,6 +254,7 @@
     function createRoom() {
         const name = getName();
         if (!name) return;
+        sessionStorage.setItem('playerName', name);
         socket.emit('createRoom', name);
     }
 
@@ -333,6 +263,7 @@
         if (!name) return;
         const code = document.getElementById('roomInput').value.toUpperCase().trim();
         if (!code) { showStatus('Enter a room code!', false); return; }
+        sessionStorage.setItem('playerName', name);
         socket.emit('joinRoom', { code, name });
     }
 
@@ -360,23 +291,59 @@
     function renderPlayers(players) {
         const list = document.getElementById('player-list');
         list.innerHTML = '';
-        document.getElementById('player-count-num').textContent = players.length;
 
-        players.forEach((p, i) => {
-            const div = document.createElement('div');
-            div.className = 'player-entry' + (p.isHost ? ' is-host' : '');
+        const active = players.filter(p => !p.isSpectator);
+        const spectators = players.filter(p => p.isSpectator);
 
-            const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
-            const initial = (p.name || '?')[0].toUpperCase();
+        document.getElementById('player-count-num').textContent = active.length;
 
-            div.innerHTML = `
-                <div class="player-avatar" style="background:${color}22; border: 2px solid ${color}; color:${color};">${initial}</div>
-                <span class="player-name">${p.name}</span>
-                ${p.isHost ? '<span class="host-badge">HOST</span>' : ''}
-                ${p.id === mySocketId ? '<span class="you-badge">YOU</span>' : ''}
-            `;
-            list.appendChild(div);
+        // Render active players
+        active.forEach((p, i) => {
+            list.appendChild(makePlayerRow(p, i, false));
         });
+
+        // Render spectators if any
+        if (spectators.length > 0) {
+            const divider = document.createElement('div');
+            divider.style.cssText = 'font-size:0.38rem;color:#3498db;margin:8px 0 4px;text-align:left;letter-spacing:1px;';
+            divider.textContent = '👁 SPECTATORS';
+            list.appendChild(divider);
+            spectators.forEach((p, i) => {
+                list.appendChild(makePlayerRow(p, active.length + i, true));
+            });
+        }
+    }
+
+    function makePlayerRow(p, colorIdx, isSpectator) {
+        const div = document.createElement('div');
+        div.className = 'player-entry' + (p.isHost ? ' is-host' : '') + (isSpectator ? ' is-spectator' : '');
+
+        const color = AVATAR_COLORS[colorIdx % AVATAR_COLORS.length];
+        const initial = (p.name || '?')[0].toUpperCase();
+
+        div.innerHTML = `
+            <div class="player-avatar" style="background:${color}22;border:2px solid ${color};color:${color};">${initial}</div>
+            <span class="player-name">${p.name}</span>
+            ${p.isHost ? '<span class="badge badge-host">👑 HOST</span>' : ''}
+            ${isSpectator ? '<span class="badge badge-spectator">👁 WATCH</span>' : ''}
+            ${p.id === mySocketId ? '<span class="badge badge-you">YOU</span>' : ''}
+        `;
+        return div;
+    }
+
+    function addActivity(name, action) {
+        const feed = document.getElementById('activity-feed');
+        const toast = document.createElement('div');
+        const icons = { joined: '➕', left: '➖', spectating: '👁' };
+        const labels = { joined: 'joined the lobby', left: 'left the lobby', spectating: 'joined as spectator' };
+        toast.className = `activity-toast ${action}`;
+        toast.textContent = `${icons[action] || ''} ${name} ${labels[action] || action}`;
+        feed.insertBefore(toast, feed.firstChild);
+        // Keep max 3 toasts
+        while (feed.children.length > 3) feed.removeChild(feed.lastChild);
+        // Fade out after 4s
+        setTimeout(() => { if (toast.parentNode) toast.style.opacity = '0'; }, 3500);
+        setTimeout(() => { if (toast.parentNode) feed.removeChild(toast); }, 4000);
     }
 
     // ── Socket Events ──
@@ -391,6 +358,27 @@
 
     socket.on('updatePlayers', (players) => {
         renderPlayers(players);
+        // Check if I became host
+        const me = players.find(p => p.id === mySocketId);
+        if (me && me.isHost && !isHost) {
+            isHost = true;
+            document.getElementById('start-btn-wrapper').style.display = 'block';
+            document.getElementById('host-waiting').style.display = 'none';
+        }
+    });
+
+    socket.on('spectatorCount', (count) => {
+        document.getElementById('spectator-count-num').textContent = count;
+    });
+
+    socket.on('playerActivity', ({ name, action }) => {
+        addActivity(name, action);
+    });
+
+    socket.on('youAreHost', () => {
+        isHost = true;
+        document.getElementById('start-btn-wrapper').style.display = 'block';
+        document.getElementById('host-waiting').style.display = 'none';
     });
 
     socket.on('startGame', () => {
