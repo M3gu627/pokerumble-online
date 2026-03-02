@@ -40,7 +40,7 @@ let pgInterval = null;
 let lobbyWins = {};
 let playerVotes = {};
 let totalPlayers = 1;
-let myName = null;
+let myName = 'Player'; // default so it always has a value
 
 const POKEBALL_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png";
 
@@ -103,9 +103,8 @@ function normalizeType(apiType) {
 
 // ── Socket events ──
 socket.on('gameInfo', (data) => {
-    myName = data.name;
-    totalPlayers = data.totalPlayers;
-    totalPlayerCount.textContent = totalPlayers;
+    if (data.name) myName = data.name;
+    if (data.totalPlayers) totalPlayers = data.totalPlayers;
     if (data.wins) lobbyWins = data.wins;
 });
 
@@ -129,17 +128,25 @@ socket.on('allQuit', () => {
 
 // ── Post-game ──
 function showPostGame(winnerName) {
+    // Stop any existing interval first
+    if (pgInterval) {
+        clearInterval(pgInterval);
+        pgInterval = null;
+    }
+
     winnerBanner.textContent = winnerName
         ? `🏆 ${winnerName.toUpperCase()} WINS!`
         : '🤝 DRAW!';
 
-    // Tell server about the win (server will broadcast winsUpdate)
+    // Notify server about the win
     socket.emit('reportWin', { winner: winnerName });
 
+    // Reset all vote UI state cleanly
     playerVotes = {};
     myVote = null;
     pgCountdown = 15;
-    pgTimerEl.textContent = pgCountdown;
+
+    pgTimerEl.textContent = '15';
     btnPlayAgain.disabled = false;
     btnQuit.disabled = false;
     playVoteCount.textContent = '0';
@@ -147,19 +154,28 @@ function showPostGame(winnerName) {
 
     renderVotes();
     renderWins();
+
+    // Show the overlay
     postgameOverlay.classList.add('show');
 
-    if (pgInterval) clearInterval(pgInterval);
+    // Start fresh countdown
     pgInterval = setInterval(() => {
         pgCountdown--;
         pgTimerEl.textContent = pgCountdown;
+
         if (pgCountdown <= 0) {
             clearInterval(pgInterval);
+            pgInterval = null;
+            // Auto vote play if not voted yet
             if (!myVote) {
                 myVote = 'play';
                 btnPlayAgain.disabled = true;
                 btnQuit.disabled = true;
-                socket.emit('playerVote', { name: myName || 'Player', vote: 'play' });
+                socket.emit('playerVote', { name: myName, vote: 'play' });
+                // If solo (no server handling), just restart locally
+                if (totalPlayers <= 1) {
+                    setTimeout(() => resetForNewGame(), 500);
+                }
             }
         }
     }, 1000);
@@ -170,7 +186,13 @@ function votePlayAgain() {
     myVote = 'play';
     btnPlayAgain.disabled = true;
     btnQuit.disabled = true;
-    socket.emit('playerVote', { name: myName || 'Player', vote: 'play' });
+    socket.emit('playerVote', { name: myName, vote: 'play' });
+
+    // Solo fallback: if no multiplayer room, restart immediately
+    if (totalPlayers <= 1) {
+        if (pgInterval) { clearInterval(pgInterval); pgInterval = null; }
+        setTimeout(() => resetForNewGame(), 500);
+    }
 }
 
 function voteQuit() {
@@ -178,7 +200,13 @@ function voteQuit() {
     myVote = 'quit';
     btnPlayAgain.disabled = true;
     btnQuit.disabled = true;
-    socket.emit('playerVote', { name: myName || 'Player', vote: 'quit' });
+    socket.emit('playerVote', { name: myName, vote: 'quit' });
+
+    // Solo fallback
+    if (totalPlayers <= 1) {
+        if (pgInterval) { clearInterval(pgInterval); pgInterval = null; }
+        setTimeout(() => { window.location.href = '/'; }, 500);
+    }
 }
 
 function renderVotes() {
@@ -214,16 +242,19 @@ function renderWins() {
 }
 
 function resetForNewGame() {
-    if (pgInterval) clearInterval(pgInterval);
+    if (pgInterval) { clearInterval(pgInterval); pgInterval = null; }
     myVote = null;
     postgameOverlay.classList.remove('show');
     fighters = [];
     playerChoice = null;
     gameState = "LOADING";
     selectionTimeLeft = 60;
+    countdownTimer = 180;
+    phaseTimer = 0;
     logContent.innerHTML = '';
     hpList.innerHTML = '';
     playerProfile.classList.add('hidden');
+    startBtn.classList.add('hidden');
     selectionOverlay.style.display = 'flex';
     statusBanner.className = '';
     statusBanner.innerText = 'LOADING POKÉDEX...';
@@ -293,7 +324,9 @@ function addToLog(msg) {
 
 function updateSidebarProfile() {
     if (!playerChoice) return;
-    playerChoice.hp <= 0 ? faintedOverlay.classList.remove('hidden') : faintedOverlay.classList.add('hidden');
+    playerChoice.hp <= 0
+        ? faintedOverlay.classList.remove('hidden')
+        : faintedOverlay.classList.add('hidden');
     if (playerChoice.target && playerChoice.target.hp > 0) {
         targetPkmnSprite.src = playerChoice.target.img.src;
         targetPkmnSprite.style.opacity = '1';
@@ -320,14 +353,16 @@ function updateUI() {
 function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (gameState === "LOADING") { statusBanner.innerText = "LOADING POKÉDEX..."; }
-    else if (gameState === "SELECT") { statusBanner.innerText = `CHOOSE YOUR POKEMON: ${selectionTimeLeft}s`; statusBanner.className = "selecting"; }
-    else if (gameState === "COUNTDOWN") {
+    if (gameState === "LOADING") {
+        statusBanner.innerText = "LOADING POKÉDEX...";
+    } else if (gameState === "SELECT") {
+        statusBanner.innerText = `CHOOSE YOUR POKEMON: ${selectionTimeLeft}s`;
+        statusBanner.className = "selecting";
+    } else if (gameState === "COUNTDOWN") {
         countdownTimer--;
         statusBanner.innerText = "STARTING IN: " + Math.ceil(countdownTimer / 60);
         if (countdownTimer <= 0) { gameState = "MOVE"; phaseTimer = 300; }
-    }
-    else if (gameState === "MOVE") {
+    } else if (gameState === "MOVE") {
         statusBanner.innerText = "BATTLE PHASE"; phaseTimer--;
         fighters.forEach(f => {
             if (f.hp <= 0) return;
@@ -340,27 +375,33 @@ function loop() {
             fighters.forEach(f => {
                 if (f.hp <= 0) return;
                 let minDist = Infinity;
-                fighters.forEach(o => { if (o !== f && o.hp > 0) { let d = Math.hypot(o.x-f.x, o.y-f.y); if (d < minDist) { minDist = d; f.target = o; } } });
+                fighters.forEach(o => {
+                    if (o !== f && o.hp > 0) {
+                        let d = Math.hypot(o.x - f.x, o.y - f.y);
+                        if (d < minDist) { minDist = d; f.target = o; }
+                    }
+                });
                 const r = Math.random();
                 if (r < 0.2) { f.currentMoveCategory = "debuff"; f.currentMoveName = f.moves.debuff; }
                 else if (minDist < 110) { f.currentMoveCategory = "short"; f.currentMoveName = f.moves.short; }
                 else { f.currentMoveCategory = "long"; f.currentMoveName = f.moves.long; }
             });
         }
-    }
-    else if (gameState === "DECIDE") {
+    } else if (gameState === "DECIDE") {
         statusBanner.innerText = "EXECUTION"; phaseTimer--;
         if (phaseTimer <= 0) {
             fighters.forEach(f => {
                 if (f.hp <= 0 || !f.target || f.target.hp <= 0) return;
                 if (f.currentMoveCategory === "debuff") {
                     addToLog(`<span style="color:#aaa">${f.name} used <b style="color:#a29bfe">${f.currentMoveName}</b> on ${f.target.name}! <i style="color:#888">(-DEF)</i></span>`);
-                    f.target.def = Math.max(1, Math.floor(f.target.def * 0.85)); return;
+                    f.target.def = Math.max(1, Math.floor(f.target.def * 0.85));
+                    return;
                 }
                 let typeMult = TYPE_CHART[f.type]?.[f.target.type] ?? 1.0;
                 let isCrit = Math.random() < 0.1;
                 let dmg = Math.floor((30 * f.atk / f.target.def) * typeMult * (isCrit ? 1.5 : 1.0));
-                let effectLabel = typeMult >= 2 ? `<span style="color:#f39c12"> ⚡ Super effective!</span>`
+                let effectLabel = typeMult >= 2
+                    ? `<span style="color:#f39c12"> ⚡ Super effective!</span>`
                     : typeMult === 0 ? `<span style="color:#888"> It had no effect...</span>`
                     : typeMult < 1 ? `<span style="color:#7f8c8d"> Not very effective...</span>` : "";
                 let critLabel = isCrit ? `<span style="color:#e74c3c"> ★ CRITICAL HIT!</span>` : "";
@@ -377,10 +418,11 @@ function loop() {
     updateUI();
 
     const alive = fighters.filter(f => f.hp > 0);
-    if (alive.length === 1 && !["SELECT","COUNTDOWN","LOADING"].includes(gameState)) {
+    if (alive.length === 1 && !["SELECT", "COUNTDOWN", "LOADING"].includes(gameState)) {
         const winnerPokemon = alive[0];
+        // If this client's chosen pokemon won, credit the win to their name
         const winnerName = (playerChoice && playerChoice === winnerPokemon)
-            ? (myName || 'You')
+            ? myName
             : winnerPokemon.name;
         statusBanner.innerText = winnerPokemon.name.toUpperCase() + " WINS!";
         statusBanner.className = '';
@@ -409,8 +451,8 @@ async function initSelection() {
         card.className = 'select-card';
         card.innerHTML = `
             <img src="${f.img.src}">
-            <div style="color:${TYPE_COLORS[f.type]||'#aaa'}">${f.name}</div>
-            <div style="font-size:0.65rem;color:${TYPE_COLORS[f.type]||'#aaa'};margin-top:2px;">[${f.type}]</div>
+            <div style="color:${TYPE_COLORS[f.type] || '#aaa'}">${f.name}</div>
+            <div style="font-size:0.65rem;color:${TYPE_COLORS[f.type] || '#aaa'};margin-top:2px;">[${f.type}]</div>
         `;
         card.onclick = () => selectPokemon(f, card);
         pokemonGrid.appendChild(card);
