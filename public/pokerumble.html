@@ -9,6 +9,70 @@
         body { padding-top: 0; }
         #game-container { height: 92vh; }
 
+        /* Spectator banner */
+        #spectator-banner {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            background: rgba(41, 128, 185, 0.97);
+            color: white;
+            text-align: center;
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.5rem;
+            z-index: 400;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #3498db;
+        }
+        body.is-spectator { padding-top: 36px; }
+        body.is-spectator #game-container { height: calc(92vh - 36px); }
+
+        /* Spectator count chip on arena */
+        #spectator-chip {
+            display: none;
+            position: fixed;
+            top: 12px; right: 16px;
+            background: rgba(52,152,219,0.9);
+            color: white;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.42rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #3498db;
+            z-index: 150;
+            letter-spacing: 1px;
+        }
+
+        /* Activity toasts in-game */
+        #ingame-activity {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            z-index: 150;
+            pointer-events: none;
+        }
+        .ig-toast {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.38rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            animation: toastIn 0.3s ease;
+            white-space: nowrap;
+        }
+        .ig-toast.joined     { background: rgba(46,204,113,0.9); color: #fff; }
+        .ig-toast.left       { background: rgba(231,76,60,0.9);  color: #fff; }
+        .ig-toast.spectating { background: rgba(52,152,219,0.9); color: #fff; }
+        @keyframes toastIn {
+            from { opacity:0; transform:translateY(8px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
         /* ── POST GAME OVERLAY ── */
         #postgame-overlay {
             position: fixed;
@@ -34,7 +98,6 @@
             width: 92%;
             max-width: 860px;
         }
-
         .pg-title {
             font-size: 0.5rem;
             color: #ffcb05;
@@ -43,7 +106,6 @@
             border-bottom: 1px solid #34495e;
             padding-bottom: 10px;
         }
-
         #winner-banner {
             text-align: center;
             font-size: 1rem;
@@ -55,57 +117,32 @@
             from { text-shadow: 0 0 10px rgba(255,203,5,0.4); }
             to   { text-shadow: 0 0 30px rgba(255,203,5,1); }
         }
-
         .pg-columns { display: flex; gap: 16px; }
         .pg-col { flex: 1; }
 
         #vote-list, #wins-list {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-            max-height: 220px;
-            overflow-y: auto;
+            display: flex; flex-direction: column;
+            gap: 7px; max-height: 220px; overflow-y: auto;
         }
-
         .vote-row, .wins-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(0,0,0,0.3);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.42rem;
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(0,0,0,0.3); padding: 8px 12px;
+            border-radius: 8px; font-size: 0.42rem;
         }
         .wins-row.top { border-left: 3px solid #ffcb05; }
-
         .vote-name, .wins-name { flex: 1; color: #ecf0f1; }
         .wins-rank { color: #ffcb05; width: 18px; text-align: center; }
         .wins-count { color: #2ecc71; }
+        .badge { padding: 3px 7px; border-radius: 4px; font-size: 0.38rem; letter-spacing: 0.5px; }
+        .badge-play { background: #27ae60; color: #fff; }
+        .badge-quit { background: #c0392b; color: #fff; }
 
-        .badge {
-            padding: 3px 7px;
-            border-radius: 4px;
-            font-size: 0.38rem;
-            letter-spacing: 0.5px;
-        }
-        .badge-play  { background: #27ae60; color: #fff; }
-        .badge-quit  { background: #c0392b; color: #fff; }
-        .badge-wait  { background: #555;    color: #aaa; }
-
-        #vote-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-        }
+        #vote-buttons { display: flex; gap: 16px; justify-content: center; }
         .pg-btn {
             font-family: 'Press Start 2P', monospace;
-            padding: 13px 26px;
-            font-size: 0.6rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.15s;
-            letter-spacing: 1px;
+            padding: 13px 26px; font-size: 0.6rem;
+            border: none; border-radius: 8px; cursor: pointer;
+            transition: all 0.15s; letter-spacing: 1px;
         }
         .pg-btn:hover { transform: scale(1.04); }
         .pg-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
@@ -118,13 +155,31 @@
         #vote-tally b { color: #ffcb05; }
         #restart-countdown { text-align: center; font-size: 0.45rem; color: #777; margin-top: 12px; }
         #restart-countdown span { color: #ffcb05; }
+
+        .spectator-vote-note {
+            text-align: center;
+            font-size: 0.38rem;
+            color: #3498db;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
 
+    <!-- Spectator banner (shown if watching) -->
+    <div id="spectator-banner">
+        👁 YOU ARE SPECTATING &nbsp;|&nbsp; <span id="spectator-count-badge">0</span> SPECTATOR(S) WATCHING
+    </div>
+
+    <!-- Spectator count chip (shown to all players) -->
+    <div id="spectator-chip">👁 <span id="spectator-chip-count">0</span> WATCHING</div>
+
+    <!-- In-game activity toasts -->
+    <div id="ingame-activity"></div>
+
     <!-- ── POST GAME OVERLAY ── -->
     <div id="postgame-overlay">
-        <div class="postgame-card" style="text-align:center; padding:18px 32px;">
+        <div class="postgame-card" style="text-align:center;padding:18px 32px;">
             <div class="pg-title">🏆 BATTLE RESULT</div>
             <div id="winner-banner">---</div>
         </div>
@@ -149,6 +204,9 @@
             <div id="vote-buttons">
                 <button class="pg-btn pg-btn-play" id="btn-play-again" onclick="votePlayAgain()">▶ PLAY AGAIN</button>
                 <button class="pg-btn pg-btn-quit" id="btn-quit"       onclick="voteQuit()">✖ QUIT</button>
+            </div>
+            <div id="spectator-vote-note" class="spectator-vote-note" style="display:none;">
+                👁 You are spectating — your vote won't count toward restart
             </div>
             <div id="restart-countdown">Auto-restarting in <span id="pg-timer">15</span>s</div>
         </div>
