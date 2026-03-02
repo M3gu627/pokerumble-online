@@ -1,4 +1,3 @@
-<DOCUMENT filename="server.js">
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -15,7 +14,7 @@ app.get('/', (req, res) => {
 
 const rooms = {};
 
-// ── SHARED POOL GENERATION (moved here for sync) ──
+// ── SHARED POOL (deterministic for all clients) ──
 const formatName = (n) => n.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 const normalizeType = (t) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
 
@@ -24,9 +23,7 @@ async function fetchPokemonType(id) {
         const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
         const data = await res.json();
         return normalizeType(data.types[0].type.name);
-    } catch {
-        return "Normal";
-    }
+    } catch { return "Normal"; }
 }
 
 async function generateSharedPool() {
@@ -43,7 +40,15 @@ async function generateSharedPool() {
     }
 }
 
-// ── GAME LOGIC (unchanged except pool + battleStart) ──
+function getPlayerList(room) {
+    return room.players.map(p => ({
+        id: p.id,
+        name: p.name,
+        isHost: p.id === room.host,
+        isSpectator: p.isSpectator || false
+    }));
+}
+
 io.on('connection', (socket) => {
     console.log('Player connected:', socket.id);
 
@@ -70,7 +75,7 @@ io.on('connection', (socket) => {
 
         socket.emit('roomCreated', code);
         io.to(code).emit('updatePlayers', getPlayerList(rooms[code]));
-        io.to(code).emit('sharedPokemonPool', pool);   // ← SYNCED POOL
+        io.to(code).emit('sharedPokemonPool', pool);
         console.log(`Room ${code} created by ${name}`);
     });
 
@@ -101,10 +106,7 @@ io.on('connection', (socket) => {
             socket.isSpectator = false;
             room.players.push({ id: socket.id, name: name || 'Player', isSpectator: false });
 
-            // Give pool to new player (if not already generated)
-            if (!room.pokemonPool) {
-                room.pokemonPool = await generateSharedPool();
-            }
+            if (!room.pokemonPool) room.pokemonPool = await generateSharedPool();
             socket.emit('sharedPokemonPool', room.pokemonPool);
 
             socket.emit('roomJoined', code);
@@ -114,7 +116,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ── AUTO-START WHEN EVERYONE IS READY (authoritative) ──
     socket.on('playerReady', () => {
         const code = socket.roomCode;
         if (!code || !rooms[code] || socket.isSpectator) return;
@@ -126,12 +127,9 @@ io.on('connection', (socket) => {
 
         io.to(code).emit('readyUpdate', { ready: readyCount, total: activeCount });
 
-        // ALL READY → start battle with shared seed
         if (readyCount === activeCount && !room.gameInProgress) {
             const seed = Math.random().toString(36).substring(2, 10);
-            room.seed = seed;
             room.gameInProgress = true;
-
             io.to(code).emit('battleStart', { seed });
             console.log(`Battle started in ${code} (seed: ${seed})`);
         }
@@ -145,7 +143,7 @@ io.on('connection', (socket) => {
         room.votes = {};
         room.readyPlayers = new Set();
         io.to(code).emit('winsUpdate', room.wins);
-        console.log(`Win: ${winner} in room ${code}`);
+        console.log(`Win reported: ${winner} in ${code}`);
     });
 
     socket.on('playerVote', ({ name, vote }) => {
@@ -169,13 +167,11 @@ io.on('connection', (socket) => {
 
                 setTimeout(async () => {
                     room.players.forEach(p => { p.isSpectator = false; });
-
-                    // NEW POOL FOR NEXT ROUND
                     const newPool = await generateSharedPool();
                     room.pokemonPool = newPool;
 
-                    io.to(code).emit('sharedPokemonPool', newPool);
-                    io.to(code).emit('restartGame');
+                    io.to(code).emit('restartGame');           // reset first
+                    io.to(code).emit('sharedPokemonPool', newPool); // then new pool
                 }, 1000);
             } else {
                 io.to(code).emit('allQuit');
@@ -212,15 +208,5 @@ io.on('connection', (socket) => {
     });
 });
 
-function getPlayerList(room) {
-    return room.players.map(p => ({
-        id: p.id,
-        name: p.name,
-        isHost: p.id === room.host,
-        isSpectator: p.isSpectator || false
-    }));
-}
-
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`PokeRumble running on port ${PORT}`));
-</DOCUMENT>
